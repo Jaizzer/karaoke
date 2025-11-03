@@ -1,0 +1,29 @@
+@import 'tailwindcss';
+
+/* Design tokens: dark, structured — a dev-tool dark mode (GitHub-dark-ish
+   restraint). Tailwind 4's @theme turns each of these into real utility
+   classes — `--color-surface` becomes `bg-surface`, `text-surface`, etc.
+   Add new tokens here rather than one-off hex values in components. */
+@theme {
+	--color-bg: #0d1117;
+	--color-surface: #161b22;
+	--color-surface-hover: #1c2129;
+	--color-border: #30363d;
+	--color-border-muted: #21262d;
+
+	--color-text: #e6edf3;
+	--color-text-muted: #8b949e;
+	--color-text-dim: #6e7681;
+
+	--color-accent: #3b82f6;
+	--color-accent-hover: #60a5fa;
+
+	/* Correct/incorrect feedback colors. */
+	--color-success: #22c55e;
+	--color-error: #ef4444;
+}
+
+body {
+	background-color: var(--color-bg);
+	color: var(--color-text);
+}

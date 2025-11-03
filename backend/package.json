@@ -1,0 +1,51 @@
+{
+	"name": "karaoke-backend",
+	"version": "1.0.0",
+	"description": "Express + Prisma + PostgreSQL monolith API.",
+	"type": "module",
+	"scripts": {
+		"dev": "NODE_ENV=development nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/server.ts",
+		"build": "prisma generate --schema=./src/database/schema.prisma && tsc --project tsconfig.build.json",
+		"start": "NODE_ENV=production node dist/server.js",
+		"test": "NODE_ENV=test node --experimental-vm-modules node_modules/.bin/jest --passWithNoTests --detectOpenHandles --forceExit",
+		"lint": "eslint .",
+		"pre-commit": "lint-staged",
+		"db:migrate": "prisma migrate dev --config=./src/database/prisma.config.ts",
+		"db:migrate:deploy": "prisma migrate deploy --config=./src/database/prisma.config.ts",
+		"db:studio": "prisma studio --config=./src/database/prisma.config.ts"
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@jest/globals": "^30.4.1",
+		"@types/express": "^5.0.6",
+		"@types/jest": "^30.0.0",
+		"@types/node": "^25.9.2",
+		"@types/supertest": "^7.2.0",
+		"dotenv": "^17.4.2",
+		"eslint": "^10.4.1",
+		"eslint-config-prettier": "^10.1.8",
+		"globals": "^17.6.0",
+		"jest": "^30.4.2",
+		"nodemon": "^3.1.14",
+		"prettier": "^3.8.3",
+		"prisma": "^7.8.0",
+		"supertest": "^7.2.2",
+		"ts-jest": "^29.4.11",
+		"ts-node": "^10.9.2",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.61.0",
+		"vercel": "^56.4.1"
+	},
+	"dependencies": {
+		"@prisma/adapter-pg": "^7.8.0",
+		"@prisma/client": "^7.8.0",
+		"@types/cors": "^2.8.19",
+		"@types/pg": "^8.20.0",
+		"better-auth": "^1.6.26",
+		"cors": "^2.8.6",
+		"express": "^5.2.1",
+		"pg": "^8.21.0",
+		"resend": "^6.19.0",
+		"zod": "^4.4.3"
+	}
+}

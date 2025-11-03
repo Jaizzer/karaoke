@@ -1,0 +1,47 @@
+{
+	// Visit https://aka.ms/tsconfig to read more about this file
+	"compilerOptions": {
+		// File Layout
+		"rootDir": "./src",
+		"outDir": "./dist",
+
+		// Environment Settings — ESNext because the app runs on modern
+		// Node (24.x) via native ESM, not a bundler that needs a lower target.
+		"module": "esnext",
+		"target": "esnext",
+		"types": ["node", "jest"],
+
+		// Other Outputs — useful for debugging the compiled output and for
+		// consumers that might import this package's types.
+		"sourceMap": true,
+		"declaration": true,
+		"declarationMap": true,
+
+		// Stricter Typechecking Options, on top of "strict" below.
+		// noUncheckedIndexedAccess: `arr[i]` is typed `T | undefined`, not `T`,
+		// which stops a whole class of "assumed it exists" bugs.
+		"noUncheckedIndexedAccess": true,
+		"exactOptionalPropertyTypes": true,
+
+		// Recommended Options
+		"strict": true,
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+		"noUncheckedSideEffectImports": true,
+		"moduleDetection": "force",
+		"skipLibCheck": true,
+
+		// Source files import each other as `./foo.ts` (not `./foo.js`) so
+		// the editor can jump-to-definition on the real file. These two
+		// options let TypeScript accept that and rewrite the extension to
+		// `.js` in the emitted output, since that's what Node's ESM loader
+		// expects at runtime.
+		"moduleResolution": "bundler",
+		"allowImportingTsExtensions": true,
+		"rewriteRelativeImportExtensions": true,
+		"forceConsistentCasingInFileNames": true,
+		"esModuleInterop": true
+	},
+	"include": ["src/**/*", "**/*.test.ts", "src/types/**/*.d.ts"],
+	"exclude": ["node_modules"]
+}

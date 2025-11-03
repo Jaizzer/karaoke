@@ -1,0 +1,4 @@
+# Enforces the feat:/fix:/chore:/refactor:/style:/etc. commit convention
+# via commitlint.config.js — `--edit "$1"` reads the message Git already
+# wrote to that temp file rather than prompting interactively.
+npx --no -- commitlint --edit "$1"

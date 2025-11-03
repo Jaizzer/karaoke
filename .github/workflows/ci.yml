@@ -1,0 +1,111 @@
+# Continuous Integration: run each service's test suite on every push/PR to
+# a non-main branch, so broken code gets flagged before it's ever merged.
+#
+# The `changes` job below uses dorny/paths-filter to detect which of
+# backend/ or frontend/ this push/PR actually touched, so e.g. a
+# frontend-only change doesn't pay the cost of spinning up Postgres and
+# running the backend suite too.
+name: Continuous Integration
+
+on:
+    push:
+        branches:
+            - "**"
+            - "!main"
+    pull_request:
+        branches:
+            - "**"
+            - "!main"
+
+jobs:
+    changes:
+        runs-on: ubuntu-latest
+        outputs:
+            frontend: ${{ steps.filter.outputs.frontend }}
+            backend: ${{ steps.filter.outputs.backend }}
+        steps:
+            - uses: actions/checkout@v6
+            - uses: dorny/paths-filter@v3
+              id: filter
+              with:
+                  filters: |
+                      frontend:
+                          - 'frontend/**'
+                      backend:
+                          - 'backend/**'
+
+    test-backend:
+        needs: changes
+        if: ${{ needs.changes.outputs.backend == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v6
+
+            - name: Setup Node environment
+              uses: actions/setup-node@v6
+              with:
+                  node-version: "24.x"
+
+            # `npm ci` (not `npm install`) installs exactly what's in
+            # package-lock.json — reproducible, and fails loudly if the lock
+            # file is out of sync with package.json instead of silently
+            # rewriting it.
+            - name: Install dependencies
+              working-directory: backend
+              run: npm ci
+
+            - name: Run tests
+              working-directory: backend
+              # NODE_ENV=test tells backend/src/config/env.ts to load
+              # TEST_DATABASE_URL instead of the dev/prod database — CI runs
+              # against a disposable Postgres service defined below, never
+              # against real data.
+              run: npm test
+              env:
+                  NODE_ENV: test
+                  TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/karaoke_test
+                  BETTER_AUTH_SECRET: ci-test-secret-not-used-in-production
+
+        # Spin up a throwaway Postgres container for the lifetime of this
+        # job — the test suite needs a real database to run Prisma queries
+        # against, and this avoids depending on any external service.
+        services:
+            postgres:
+                image: postgres:16
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_DB: karaoke_test
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+    test-frontend:
+        needs: changes
+        if: ${{ needs.changes.outputs.frontend == 'true' }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v6
+
+            - name: Setup Node environment
+              uses: actions/setup-node@v6
+              with:
+                  node-version: "24.x"
+
+            - name: Install dependencies
+              working-directory: frontend
+              run: npm ci
+
+            - name: Run tests
+              working-directory: frontend
+              run: npm test
+
+            - name: Build
+              working-directory: frontend
+              run: npm run build

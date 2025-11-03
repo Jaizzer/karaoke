@@ -1,0 +1,28 @@
+# Husky invokes this file as `sh -e <this file>` (not bash), so stick to
+# POSIX sh syntax here — no bash arrays, no `[[ ... ]]`.
+#
+# `set -e` makes the whole script exit non-zero the instant any command in
+# it fails. This matters: without it, a failing `npm test` wouldn't actually
+# block the commit, because the script's last command (`cd ..`) would still
+# exit 0 and Husky only looks at the *final* exit code.
+set -e
+
+# Only pay for backend checks (test + lint-staged) when this commit actually
+# touches backend/. Skips the cost entirely for docs-only or root-config
+# commits. `git diff --cached` lists staged files (what's about to be
+# committed), not the working tree.
+if git diff --name-only --cached | grep -q '^backend/'; then
+	echo "backend/ changed — running its pre-commit checks..."
+	cd backend
+	npm test
+	npm run pre-commit
+	cd ..
+fi
+
+if git diff --name-only --cached | grep -q '^frontend/'; then
+	echo "frontend/ changed — running its pre-commit checks..."
+	cd frontend
+	npm test
+	npm run pre-commit
+	cd ..
+fi

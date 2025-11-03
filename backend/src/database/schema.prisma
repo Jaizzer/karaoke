@@ -1,0 +1,93 @@
+// Prisma schema — the single source of truth for the database shape.
+// `npx prisma migrate dev` diffs this file against the database and writes
+// a new SQL migration for the difference; `npx prisma generate` (part of
+// `npm run build`) turns it into the typed client imported from
+// ./generated/client.ts.
+//
+// The four models below (User, Session, Account, Verification) are the
+// exact shape Better Auth's Prisma adapter expects — see src/lib/auth.ts.
+// Don't rename their fields/tables without also checking Better Auth's
+// docs; it queries them by these names. App-specific models belong here
+// too, related back to `User` the same way Session/Account are.
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@map("user")
+}
+
+// One row per active login — this is what a session cookie's token maps to.
+// Better Auth checks `expiresAt` on every authenticated request and deletes
+// the row on sign-out.
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+// One row per way a User can authenticate: `providerId: "credential"` for
+// email+password (with the hashed password in the `password` column), or
+// `providerId: "google"` for an OAuth-linked Google account. A single User
+// can have both at once, which is how "sign in with Google OR password"
+// works for the same account.
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+// Short-lived tokens for flows that aren't a logged-in session yet — email
+// verification links and password-reset links. `identifier` is typically
+// the user's email; `value` is the token itself.
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}

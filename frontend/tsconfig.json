@@ -1,0 +1,12 @@
+// Project-references split: app code (tsconfig.app.json, browser libs) and
+// build tooling (tsconfig.node.json, vite.config.ts itself) need different
+// settings — e.g. only the app half should assume DOM globals exist — so
+// each gets typechecked independently. This root file is just the pointer
+// tying the two together for `tsc -b`.
+{
+	"files": [],
+	"references": [
+		{ "path": "./tsconfig.app.json" },
+		{ "path": "./tsconfig.node.json" }
+	]
+}

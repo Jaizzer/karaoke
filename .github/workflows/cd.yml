@@ -1,0 +1,144 @@
+# Continuous Delivery: on every push to main, deploy whichever of
+# backend/frontend actually changed to Vercel (backend also gets its
+# pending Prisma migrations applied first).
+#
+# Each job pins VERCEL_ORG_ID/VERCEL_PROJECT_ID explicitly. This is not
+# optional: `.vercel/project.json` (the file `vercel link` normally writes
+# to tell the CLI which project a directory belongs to) is gitignored on
+# purpose, so a fresh CI checkout has no project link at all. Without these
+# env vars, the Vercel CLI falls back to guessing a project from the
+# working-directory's name — and because this repo's folders are named
+# `backend`/`frontend`, that can silently match (and deploy to!) a
+# *different, pre-existing* project with the same name instead of failing.
+# Pinning the IDs here makes that class of mistake impossible. IDs aren't
+# secret — they're visible in Vercel's own dashboard URLs — so they're
+# plain values, not repository secrets.
+#
+# TEMPLATE SETUP: the VERCEL_ORG_ID/VERCEL_PROJECT_ID values below are
+# placeholders. After running `npx vercel link` in backend/ and frontend/
+# (see README.md's "Deploying" section), read the real IDs out of the
+# `.vercel/project.json` each one writes and paste them in here.
+#
+# Before this workflow can succeed you must also, once, add these
+# repository secrets under Settings → Secrets and variables → Actions:
+#   - VERCEL_TOKEN            (from https://vercel.com/account/tokens)
+#   - PRODUCTION_DATABASE_URL (production Postgres connection string)
+#   - PRODUCTION_URL          (the backend's own public URL, e.g. https://api.yourdomain.com)
+#   - FRONTEND_URL            (the frontend's public URL — backend needs this to trust its requests)
+#   - BETTER_AUTH_SECRET      (a long random string, e.g. `openssl rand -hex 32`)
+name: Continuous Delivery
+
+on:
+    push:
+        branches:
+            - "main"
+
+jobs:
+    changes:
+        runs-on: ubuntu-latest
+        outputs:
+            frontend: ${{ steps.filter.outputs.frontend }}
+            backend: ${{ steps.filter.outputs.backend }}
+        steps:
+            - uses: actions/checkout@v6
+            - uses: dorny/paths-filter@v3
+              id: filter
+              with:
+                  filters: |
+                      frontend:
+                          - 'frontend/**'
+                      backend:
+                          - 'backend/**'
+
+    deploy-production-backend:
+        needs: changes
+        if: ${{ needs.changes.outputs.backend == 'true' }}
+        runs-on: ubuntu-latest
+        env:
+            VERCEL_ORG_ID: REPLACE_WITH_BACKEND_ORG_ID
+            VERCEL_PROJECT_ID: REPLACE_WITH_BACKEND_PROJECT_ID
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v6
+
+            - name: Setup Node environment
+              uses: actions/setup-node@v6
+              with:
+                  node-version: "24.x"
+
+            - name: Install dependencies
+              working-directory: backend
+              run: npm ci
+
+            # Applies any migration in src/database/migrations that the
+            # production database hasn't seen yet. `migrate deploy` (unlike
+            # `migrate dev`) never generates new migrations and never prompts
+            # — it's the safe, non-interactive command for CI.
+            - name: Apply database migrations
+              working-directory: backend
+              run: npm run db:migrate:deploy
+              env:
+                  NODE_ENV: production
+                  PORT: "3000"
+                  PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+                  PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+                  BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+                  FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+
+            - name: Pull Vercel Environment Information
+              working-directory: backend
+              run: npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+            - name: Build project artifacts
+              working-directory: backend
+              run: npm run build
+              env:
+                  NODE_ENV: production
+                  PORT: "3000"
+                  PRODUCTION_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+                  PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+                  BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+                  FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+
+            # No --prebuilt flag: vercel.json uses the legacy `builds` array
+            # pointing straight at dist/server.js (built in the previous
+            # step), so Vercel just packages that file rather than running
+            # its own build.
+            - name: Deploy project artifacts to Vercel
+              working-directory: backend
+              run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+    deploy-production-frontend:
+        needs: changes
+        if: ${{ needs.changes.outputs.frontend == 'true' }}
+        runs-on: ubuntu-latest
+        env:
+            VERCEL_ORG_ID: REPLACE_WITH_FRONTEND_ORG_ID
+            VERCEL_PROJECT_ID: REPLACE_WITH_FRONTEND_PROJECT_ID
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v6
+
+            - name: Setup Node environment
+              uses: actions/setup-node@v6
+              with:
+                  node-version: "24.x"
+
+            - name: Install dependencies
+              working-directory: frontend
+              run: npm ci
+
+            - name: Pull Vercel Environment Information
+              working-directory: frontend
+              run: npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+            # frontend/vercel.json sets outputDirectory (Vercel doesn't know
+            # this is a Vite project since it wasn't created via git-import,
+            # so it can't infer "dist" on its own) and rewrites /api/* to the
+            # backend, so the browser only ever talks to one origin — see
+            # frontend/src/lib/authClient.ts for why that matters.
+            - name: Deploy project artifacts to Vercel
+              working-directory: frontend
+              run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+run-name: Deploy to ${{ github.ref_name }} by @${{ github.actor }}

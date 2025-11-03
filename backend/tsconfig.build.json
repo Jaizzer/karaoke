@@ -1,0 +1,6 @@
+// Used by `npm run build` to compile production output — extends the base
+// config but excludes test files, since dist/ should only ship app code.
+{
+	"extends": "./tsconfig.json",
+	"exclude": ["**/*.test.ts"]
+}

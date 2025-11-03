@@ -1,0 +1,36 @@
+{
+	// Auto-launches both dev servers whenever this folder is opened in
+	// VS Code, each in its own dedicated terminal panel — one less manual
+	// step than starting them by hand every time.
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Backend Server",
+			"type": "shell",
+			"icon": { "id": "server", "color": "terminal.ansiGreen" },
+			"isBackground": true,
+			"runOptions": { "runOn": "folderOpen" },
+			"command": "cd backend && npm run dev",
+			"presentation": {
+				"echo": false,
+				"focus": false,
+				"panel": "dedicated",
+				"group": "server"
+			}
+		},
+		{
+			"label": "Frontend Server",
+			"type": "shell",
+			"icon": { "id": "server", "color": "terminal.ansiBlue" },
+			"isBackground": true,
+			"runOptions": { "runOn": "folderOpen" },
+			"command": "cd frontend && npm run dev",
+			"presentation": {
+				"echo": false,
+				"focus": false,
+				"panel": "dedicated",
+				"group": "server"
+			}
+		}
+	]
+}

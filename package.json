@@ -1,0 +1,19 @@
+{
+	"name": "karaoke",
+	"version": "1.0.0",
+	"description": "Root of the karaoke monorepo. This package.json only owns repo-wide git tooling (Husky + lint-staged); each service (e.g. backend/) is its own independent npm project with its own dependencies.",
+	"private": true,
+	"scripts": {
+		"prepare": "husky"
+	},
+	"lint-staged": {
+		"*.{json,yml,yaml,md}": ["prettier --check"]
+	},
+	"devDependencies": {
+		"@commitlint/cli": "^19.6.1",
+		"@commitlint/config-conventional": "^19.6.0",
+		"husky": "^9.1.7",
+		"lint-staged": "^17.0.7",
+		"prettier": "^3.8.3"
+	}
+}
