@@ -54,7 +54,10 @@ export const ModelName = {
   User: 'User',
   Session: 'Session',
   Account: 'Account',
-  Verification: 'Verification'
+  Verification: 'Verification',
+  Room: 'Room',
+  RoomMember: 'RoomMember',
+  QueueItem: 'QueueItem'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -129,6 +132,47 @@ export const VerificationScalarFieldEnum = {
 } as const
 
 export type VerificationScalarFieldEnum = (typeof VerificationScalarFieldEnum)[keyof typeof VerificationScalarFieldEnum]
+
+
+export const RoomScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  hostId: 'hostId',
+  autoSelect: 'autoSelect',
+  status: 'status',
+  createdAt: 'createdAt'
+} as const
+
+export type RoomScalarFieldEnum = (typeof RoomScalarFieldEnum)[keyof typeof RoomScalarFieldEnum]
+
+
+export const RoomMemberScalarFieldEnum = {
+  id: 'id',
+  roomId: 'roomId',
+  displayName: 'displayName',
+  sessionToken: 'sessionToken',
+  createdAt: 'createdAt'
+} as const
+
+export type RoomMemberScalarFieldEnum = (typeof RoomMemberScalarFieldEnum)[keyof typeof RoomMemberScalarFieldEnum]
+
+
+export const QueueItemScalarFieldEnum = {
+  id: 'id',
+  roomId: 'roomId',
+  addedById: 'addedById',
+  youtubeVideoId: 'youtubeVideoId',
+  title: 'title',
+  channelTitle: 'channelTitle',
+  thumbnailUrl: 'thumbnailUrl',
+  status: 'status',
+  createdAt: 'createdAt',
+  startedAt: 'startedAt',
+  endedAt: 'endedAt'
+} as const
+
+export type QueueItemScalarFieldEnum = (typeof QueueItemScalarFieldEnum)[keyof typeof QueueItemScalarFieldEnum]
 
 
 export const SortOrder = {

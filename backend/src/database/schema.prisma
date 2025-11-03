@@ -29,6 +29,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  hostedRooms   Room[]
 
   @@map("user")
 }
@@ -90,4 +91,79 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+enum RoomStatus {
+  OPEN
+  CLOSED
+}
+
+enum QueueItemStatus {
+  QUEUED
+  PLAYING
+  PLAYED
+  REMOVED
+}
+
+// A karaoke session a host runs. `code` is the short string encoded in the
+// QR guests scan to join (see room-members below) — unique so it can be
+// looked up directly, with no numeric id exposed to guests.
+model Room {
+  id         String      @id @default(uuid())
+  code       String      @unique
+  name       String?
+  hostId     String
+  host       User        @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  autoSelect Boolean     @default(false)
+  status     RoomStatus  @default(OPEN)
+  createdAt  DateTime    @default(now())
+  members    RoomMember[]
+  queueItems QueueItem[]
+
+  @@index([hostId])
+  @@map("room")
+}
+
+// A guest inside a Room. Guests don't get a Better Auth User — joining a
+// room (see room-members below) creates this row and hands back
+// `sessionToken` as a bearer token, which is all that's needed to prove
+// "this is the same guest" on later requests (queueing a song, removing
+// their own queue item). One row per guest per room, not one per guest
+// overall.
+model RoomMember {
+  id           String      @id @default(uuid())
+  roomId       String
+  room         Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  displayName  String
+  sessionToken String      @unique
+  createdAt    DateTime    @default(now())
+  queueItems   QueueItem[]
+
+  @@index([roomId])
+  @@map("room_member")
+}
+
+// One song queued in a Room. `status` tracks it through the queue:
+// QUEUED -> PLAYING (host started it) -> PLAYED (finished, host can
+// advance to the next QUEUED item) or REMOVED (deleted by the member who
+// added it, or by the host). Ordered FIFO by `createdAt` — no manual
+// reorder yet.
+model QueueItem {
+  id             String          @id @default(uuid())
+  roomId         String
+  room           Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  addedById      String
+  addedBy        RoomMember      @relation(fields: [addedById], references: [id], onDelete: Cascade)
+  youtubeVideoId String
+  title          String
+  channelTitle   String
+  thumbnailUrl   String
+  status         QueueItemStatus @default(QUEUED)
+  createdAt      DateTime        @default(now())
+  startedAt      DateTime?
+  endedAt        DateTime?
+
+  @@index([roomId])
+  @@index([addedById])
+  @@map("queue_item")
 }
