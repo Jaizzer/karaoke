@@ -9,6 +9,8 @@ import AuthPanel from './features/auth/AuthPanel.tsx';
 import EmailVerificationBanner from './features/auth/EmailVerificationBanner.tsx';
 import HomePage from './pages/HomePage.tsx';
 import ResetPasswordPage from './pages/ResetPasswordPage.tsx';
+import RoomCreatePage from './pages/RoomCreatePage.tsx';
+import HostDisplayPage from './pages/HostDisplayPage.tsx';
 import Button from './components/Button.tsx';
 import AuthHero from './components/AuthHero.tsx';
 
@@ -59,9 +61,17 @@ export default function App() {
 		<BrowserRouter>
 			<div className='mx-auto max-w-3xl px-4'>
 				<header className='flex items-center justify-between border-b border-border-muted py-4'>
-					<Link to='/' className='text-lg font-bold text-text'>
-						Karaoke
-					</Link>
+					<div className='flex items-center gap-4'>
+						<Link to='/' className='text-lg font-bold text-text'>
+							Karaoke
+						</Link>
+						<Link
+							to='/rooms/new'
+							className='text-sm text-text-muted hover:text-text'
+						>
+							Host a room
+						</Link>
+					</div>
 					<div className='flex items-center gap-3 text-sm'>
 						<span className='text-text-muted'>
 							{session.user.email}
@@ -85,6 +95,11 @@ export default function App() {
 
 				<Routes>
 					<Route path='/' element={<HomePage />} />
+					<Route path='/rooms/new' element={<RoomCreatePage />} />
+					<Route
+						path='/rooms/:code/host'
+						element={<HostDisplayPage />}
+					/>
 					<Route path='*' element={<Navigate to='/' replace />} />
 				</Routes>
 			</div>
