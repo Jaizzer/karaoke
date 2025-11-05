@@ -4,3 +4,13 @@ import { z } from 'zod';
 export const UpdateUserSchema = z.object({
 	name: z.string().min(1).max(100),
 });
+
+export const CreateRoomSchema = z.object({
+	name: z.string().min(1).max(100).optional(),
+});
+
+export const UpdateRoomSchema = z.object({
+	name: z.string().min(1).max(100).optional(),
+	autoSelect: z.boolean().optional(),
+	status: z.enum(['OPEN', 'CLOSED']).optional(),
+});
