@@ -5,6 +5,7 @@ import { toNodeHandler } from 'better-auth/node';
 import { auth } from './lib/auth.ts';
 import healthRoutes from './api/v1/health/health.route.ts';
 import userRoutes from './api/v1/users/users.route.ts';
+import roomRoutes from './api/v1/rooms/rooms.route.ts';
 import errorHandler from './middleware/errorHandler.ts';
 
 const app = express();
@@ -21,6 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/v1/health', healthRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/rooms', roomRoutes);
 
 // Must go last: Express only treats a 4-arg middleware as an error handler, after the routes it covers.
 app.use(errorHandler);
