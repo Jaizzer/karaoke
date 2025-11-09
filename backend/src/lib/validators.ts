@@ -18,3 +18,7 @@ export const UpdateRoomSchema = z.object({
 export const JoinRoomSchema = z.object({
 	displayName: z.string().min(1).max(50),
 });
+
+export const SearchSchema = z.object({
+	query: z.string().min(1).max(200),
+});
