@@ -70,13 +70,11 @@ const googleClient =
 			}
 		: undefined;
 
-// The frontend's own origin. Better Auth needs this to trust cross-origin
-// sign-up/sign-in requests coming from it (see trustedOrigins in
-// src/lib/auth.ts). In dev this is the Vite server's fixed port (see
-// frontend/vite.config.ts); in production it has to be set explicitly
-// since there's no fixed default to fall back to.
+// The frontend's own origin, needed to trust its cross-origin sign-up/sign-in
+// requests (see trustedOrigins in auth.ts). Blank FRONTEND_URL loads as '', normalized to undefined below.
+const rawFrontendUrl = process.env.FRONTEND_URL;
 const frontendUrl =
-	process.env.FRONTEND_URL ??
+	(rawFrontendUrl === '' ? undefined : rawFrontendUrl) ??
 	(nodeEnv === 'production' ? undefined : 'http://localhost:5173');
 
 // Optional, same reasoning as googleClient; forced unset in tests to avoid real email API calls.
