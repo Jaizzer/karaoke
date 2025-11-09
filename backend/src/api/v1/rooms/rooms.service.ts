@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { prisma } from '../../../database/prismaClient.ts';
+import getRoomByCode from '../../../services/getRoomByCode.ts';
 
 // Excludes lookalike characters (0/O, 1/I/L) since guests may type this in by hand.
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -34,9 +35,7 @@ export async function createRoom(hostId: string, name?: string) {
 	});
 }
 
-export async function getRoomByCode(code: string) {
-	return prisma.room.findUnique({ where: { code } });
-}
+export { getRoomByCode };
 
 export async function updateRoom(
 	id: string,
