@@ -14,3 +14,7 @@ export const UpdateRoomSchema = z.object({
 	autoSelect: z.boolean().optional(),
 	status: z.enum(['OPEN', 'CLOSED']).optional(),
 });
+
+export const JoinRoomSchema = z.object({
+	displayName: z.string().min(1).max(50),
+});
