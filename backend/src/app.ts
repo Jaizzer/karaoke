@@ -6,6 +6,7 @@ import { auth } from './lib/auth.ts';
 import healthRoutes from './api/v1/health/health.route.ts';
 import userRoutes from './api/v1/users/users.route.ts';
 import roomRoutes from './api/v1/rooms/rooms.route.ts';
+import roomMemberRoutes from './api/v1/room-members/room-members.route.ts';
 import errorHandler from './middleware/errorHandler.ts';
 
 const app = express();
@@ -22,7 +23,9 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/v1/health', healthRoutes);
 app.use('/api/v1/users', userRoutes);
+// Room-scoped domains all mount here; Express dispatches by matching path, not by prefix ownership.
 app.use('/api/v1/rooms', roomRoutes);
+app.use('/api/v1/rooms', roomMemberRoutes);
 
 // Must go last: Express only treats a 4-arg middleware as an error handler, after the routes it covers.
 app.use(errorHandler);
