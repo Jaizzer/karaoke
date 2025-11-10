@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { CreateRoomSchema, UpdateRoomSchema } from '../../../lib/validators.ts';
-import { createRoom, getRoomByCode, updateRoom } from './rooms.service.ts';
+import resolveRoom from '../../../lib/resolveRoom.ts';
+import { createRoom, updateRoom } from './rooms.service.ts';
 
 export async function postRoom(req: Request, res: Response) {
 	if (!req.user) {
@@ -20,19 +21,8 @@ export async function postRoom(req: Request, res: Response) {
 
 // Unauthenticated on purpose: a room's code/status aren't sensitive and guests need this before joining.
 export async function getRoom(req: Request, res: Response) {
-	// Express types `req.params[key]` as `string | string[]` (arrays only
-	// happen for repeated wildcard segments, never a plain `:code`) — this
-	// guard is what the router pattern already guarantees at runtime, made
-	// explicit for the type checker.
-	const { code } = req.params;
-	if (typeof code !== 'string') {
-		res.status(400).json({ message: 'Invalid room code.' });
-		return;
-	}
-
-	const room = await getRoomByCode(code);
+	const room = await resolveRoom(req, res);
 	if (!room) {
-		res.status(404).json({ message: 'Room not found.' });
 		return;
 	}
 
@@ -45,15 +35,8 @@ export async function patchRoom(req: Request, res: Response) {
 		return;
 	}
 
-	const { code } = req.params;
-	if (typeof code !== 'string') {
-		res.status(400).json({ message: 'Invalid room code.' });
-		return;
-	}
-
-	const room = await getRoomByCode(code);
+	const room = await resolveRoom(req, res);
 	if (!room) {
-		res.status(404).json({ message: 'Room not found.' });
 		return;
 	}
 

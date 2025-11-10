@@ -1,20 +1,13 @@
 import type { Request, Response } from 'express';
 import { JoinRoomSchema } from '../../../lib/validators.ts';
-import getRoomByCode from '../../../services/getRoomByCode.ts';
+import resolveRoom from '../../../lib/resolveRoom.ts';
 import { joinRoom } from './room-members.service.ts';
 
 // unauthenticated on purpose, this is how a guest gets a token in the first
 // place so there's nothing to authenticate yet
 export async function postJoin(req: Request, res: Response) {
-	const { code } = req.params;
-	if (typeof code !== 'string') {
-		res.status(400).json({ message: 'Invalid room code.' });
-		return;
-	}
-
-	const room = await getRoomByCode(code);
+	const room = await resolveRoom(req, res);
 	if (!room) {
-		res.status(404).json({ message: 'Room not found.' });
 		return;
 	}
 
