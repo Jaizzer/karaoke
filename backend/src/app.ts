@@ -8,6 +8,7 @@ import userRoutes from './api/v1/users/users.route.ts';
 import roomRoutes from './api/v1/rooms/rooms.route.ts';
 import roomMemberRoutes from './api/v1/room-members/room-members.route.ts';
 import searchRoutes from './api/v1/search/search.route.ts';
+import queueRoutes from './api/v1/queue/queue.route.ts';
 import errorHandler from './middleware/errorHandler.ts';
 
 const app = express();
@@ -28,6 +29,7 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/rooms', roomRoutes);
 app.use('/api/v1/rooms', roomMemberRoutes);
 app.use('/api/v1/rooms', searchRoutes);
+app.use('/api/v1/rooms', queueRoutes);
 
 // Must go last: Express only treats a 4-arg middleware as an error handler, after the routes it covers.
 app.use(errorHandler);
