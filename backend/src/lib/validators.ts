@@ -22,3 +22,10 @@ export const JoinRoomSchema = z.object({
 export const SearchSchema = z.object({
 	query: z.string().min(1).max(200),
 });
+
+export const AddQueueItemSchema = z.object({
+	youtubeVideoId: z.string().min(1),
+	title: z.string().min(1).max(300),
+	channelTitle: z.string().min(1).max(300),
+	thumbnailUrl: z.url(),
+});
