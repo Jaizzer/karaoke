@@ -3,16 +3,20 @@
 import type { Request, Response, NextFunction } from 'express';
 import getRoomMemberByToken from '../services/getRoomMemberByToken.ts';
 
+// Exported separately since queue.handler.ts's DELETE route needs to resolve caller-vs-host itself, not through this middleware.
+export function getBearerToken(req: Request): string | undefined {
+	const authHeader = req.headers.authorization;
+	return authHeader?.startsWith('Bearer ')
+		? authHeader.slice('Bearer '.length)
+		: undefined;
+}
+
 export default async function requireRoomMember(
 	req: Request,
 	res: Response,
 	next: NextFunction,
 ) {
-	const authHeader = req.headers.authorization;
-	const token = authHeader?.startsWith('Bearer ')
-		? authHeader.slice('Bearer '.length)
-		: undefined;
-
+	const token = getBearerToken(req);
 	if (!token) {
 		res.status(401).json({ message: 'Not joined to a room.' });
 		return;
