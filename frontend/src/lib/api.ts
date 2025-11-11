@@ -20,7 +20,9 @@ export async function apiFetch<T>(
 		headers: { 'Content-Type': 'application/json', ...options.headers },
 	});
 
-	const body: unknown = await response.json();
+	// A 204 has no body at all, and response.json() throws on an empty string, so this has to be checked before parsing.
+	const body: unknown =
+		response.status === 204 ? undefined : await response.json();
 
 	if (!response.ok) {
 		const message =
