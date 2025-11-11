@@ -2,6 +2,7 @@
 const KEY_PREFIX = 'karaoke:room-member:';
 
 export interface RoomMemberSession {
+	memberId: string;
 	sessionToken: string;
 	displayName: string;
 }

@@ -17,7 +17,7 @@ interface Room {
 }
 
 interface JoinResponse {
-	member: { displayName: string };
+	member: { id: string; displayName: string };
 	sessionToken: string;
 }
 
@@ -71,6 +71,7 @@ export default function JoinPage() {
 				{ method: 'POST', body: JSON.stringify({ displayName }) },
 			);
 			setRoomMemberSession(code, {
+				memberId: member.id,
 				sessionToken,
 				displayName: member.displayName,
 			});
