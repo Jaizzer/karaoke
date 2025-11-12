@@ -8,104 +8,175 @@
 name: Continuous Integration
 
 on:
-    push:
-        branches:
-            - "**"
-            - "!main"
-    pull_request:
-        branches:
-            - "**"
-            - "!main"
+  push:
+    branches:
+      - "**"
+      - "!main"
+  pull_request:
+    branches:
+      - "**"
+      - "!main"
 
 jobs:
-    changes:
-        runs-on: ubuntu-latest
-        outputs:
-            frontend: ${{ steps.filter.outputs.frontend }}
-            backend: ${{ steps.filter.outputs.backend }}
-        steps:
-            - uses: actions/checkout@v6
-            - uses: dorny/paths-filter@v3
-              id: filter
-              with:
-                  filters: |
-                      frontend:
-                          - 'frontend/**'
-                      backend:
-                          - 'backend/**'
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+                - 'frontend/**'
+            backend:
+                - 'backend/**'
 
-    test-backend:
-        needs: changes
-        if: ${{ needs.changes.outputs.backend == 'true' }}
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v6
+  test-backend:
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+    # Job-level, not per-step: every step below needs the exact same
+    # values (src/config/env.ts validates all of them eagerly on
+    # import, including PORT — easy to forget since a dev's own .env
+    # always has it, but nothing provides it in CI).
+    env:
+      NODE_ENV: test
+      PORT: "3000"
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/karaoke_test
+      BETTER_AUTH_SECRET: ci-test-secret-not-used-in-production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-            - name: Setup Node environment
-              uses: actions/setup-node@v6
-              with:
-                  node-version: "24.x"
+      - name: Setup Node environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24.x"
 
-            # `npm ci` (not `npm install`) installs exactly what's in
-            # package-lock.json — reproducible, and fails loudly if the lock
-            # file is out of sync with package.json instead of silently
-            # rewriting it.
-            - name: Install dependencies
-              working-directory: backend
-              run: npm ci
+      # `npm ci` (not `npm install`) installs exactly what's in
+      # package-lock.json — reproducible, and fails loudly if the lock
+      # file is out of sync with package.json instead of silently
+      # rewriting it.
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
 
-            - name: Run tests
-              working-directory: backend
-              # NODE_ENV=test tells backend/src/config/env.ts to load
-              # TEST_DATABASE_URL instead of the dev/prod database — CI runs
-              # against a disposable Postgres service defined below, never
-              # against real data.
-              run: npm test
-              env:
-                  NODE_ENV: test
-                  TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/karaoke_test
-                  BETTER_AUTH_SECRET: ci-test-secret-not-used-in-production
+      # The Postgres service below starts completely empty — every
+      # push/PR gets a fresh container, so its schema has to be
+      # applied before any test can query a table.
+      - name: Apply database migrations
+        working-directory: backend
+        run: npm run db:migrate:deploy
 
-        # Spin up a throwaway Postgres container for the lifetime of this
-        # job — the test suite needs a real database to run Prisma queries
-        # against, and this avoids depending on any external service.
-        services:
-            postgres:
-                image: postgres:16
-                env:
-                    POSTGRES_USER: postgres
-                    POSTGRES_PASSWORD: postgres
-                    POSTGRES_DB: karaoke_test
-                ports:
-                    - 5432:5432
-                options: >-
-                    --health-cmd pg_isready
-                    --health-interval 10s
-                    --health-timeout 5s
-                    --health-retries 5
+      - name: Run tests
+        working-directory: backend
+        run: npm test
 
-    test-frontend:
-        needs: changes
-        if: ${{ needs.changes.outputs.frontend == 'true' }}
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v6
+    # Spin up a throwaway Postgres container for the lifetime of this
+    # job — the test suite needs a real database to run Prisma queries
+    # against, and this avoids depending on any external service.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: karaoke_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-            - name: Setup Node environment
-              uses: actions/setup-node@v6
-              with:
-                  node-version: "24.x"
+  test-frontend:
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-            - name: Install dependencies
-              working-directory: frontend
-              run: npm ci
+      - name: Setup Node environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24.x"
 
-            - name: Run tests
-              working-directory: frontend
-              run: npm test
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
 
-            - name: Build
-              working-directory: frontend
-              run: npm run build
+      - name: Run tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  # The one golden-path E2E test (frontend/e2e/) drives both services for
+  # real through a headless browser, so it needs both installed and a
+  # migrated database — same as test-backend, plus Playwright's browser
+  # binary. Runs if either service changed, since a frontend-only change
+  # can just as easily break this flow as a backend-only one.
+  test-e2e:
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      PORT: "3000"
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/karaoke_test
+      BETTER_AUTH_SECRET: ci-test-secret-not-used-in-production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24.x"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Apply database migrations
+        working-directory: backend
+        run: npm run db:migrate:deploy
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      # Only Chromium (playwright.config.ts's one project) — the other
+      # engines Playwright can install aren't used here.
+      - name: Install Playwright's browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      # playwright.config.ts's webServer starts both dev servers
+      # itself (backend via `dev:e2e`, pinned to NODE_ENV=test — see
+      # that config's comment for why `dev` alone can't be used here).
+      - name: Run E2E tests
+        working-directory: frontend
+        run: npm run test:e2e
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: karaoke_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
