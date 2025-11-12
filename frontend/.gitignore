@@ -1,2 +1,6 @@
 .vercel
 .env*
+
+# Playwright's own output — traces/screenshots from `npm run test:e2e`.
+test-results
+playwright-report
