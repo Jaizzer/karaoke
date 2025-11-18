@@ -14,10 +14,9 @@
 # secret — they're visible in Vercel's own dashboard URLs — so they're
 # plain values, not repository secrets.
 #
-# TEMPLATE SETUP: the VERCEL_ORG_ID/VERCEL_PROJECT_ID values below are
-# placeholders. After running `npx vercel link` in backend/ and frontend/
-# (see README.md's "Deploying" section), read the real IDs out of the
-# `.vercel/project.json` each one writes and paste them in here.
+# The VERCEL_ORG_ID/VERCEL_PROJECT_ID values below were read out of the
+# `.vercel/project.json` each service's `vercel link` wrote; update them
+# here if either project is ever re-linked.
 #
 # Before this workflow can succeed you must also, once, add these
 # repository secrets under Settings → Secrets and variables → Actions:
@@ -55,8 +54,8 @@ jobs:
         if: ${{ needs.changes.outputs.backend == 'true' }}
         runs-on: ubuntu-latest
         env:
-            VERCEL_ORG_ID: REPLACE_WITH_BACKEND_ORG_ID
-            VERCEL_PROJECT_ID: REPLACE_WITH_BACKEND_PROJECT_ID
+            VERCEL_ORG_ID: team_wVMuGIO0dprj7RL0HZw21CMD
+            VERCEL_PROJECT_ID: prj_EWOyW2Q9DzCsEQoTftAyvHNeMfci
         steps:
             - name: Checkout repository
               uses: actions/checkout@v6
@@ -113,8 +112,8 @@ jobs:
         if: ${{ needs.changes.outputs.frontend == 'true' }}
         runs-on: ubuntu-latest
         env:
-            VERCEL_ORG_ID: REPLACE_WITH_FRONTEND_ORG_ID
-            VERCEL_PROJECT_ID: REPLACE_WITH_FRONTEND_PROJECT_ID
+            VERCEL_ORG_ID: team_wVMuGIO0dprj7RL0HZw21CMD
+            VERCEL_PROJECT_ID: prj_aTh4JKZV2zo8qavZhfpmTCM7hcOj
         steps:
             - name: Checkout repository
               uses: actions/checkout@v6
