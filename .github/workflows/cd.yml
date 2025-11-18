@@ -31,6 +31,10 @@ on:
     push:
         branches:
             - "main"
+    # Lets a deploy be re-run on demand (e.g. after rotating a secret) with
+    # no throwaway commit needed. Manual runs deploy both services
+    # unconditionally; push-triggered runs stay path-filtered below.
+    workflow_dispatch:
 
 jobs:
     changes:
@@ -51,7 +55,7 @@ jobs:
 
     deploy-production-backend:
         needs: changes
-        if: ${{ needs.changes.outputs.backend == 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true' }}
         runs-on: ubuntu-latest
         env:
             VERCEL_ORG_ID: team_wVMuGIO0dprj7RL0HZw21CMD
@@ -109,7 +113,7 @@ jobs:
 
     deploy-production-frontend:
         needs: changes
-        if: ${{ needs.changes.outputs.frontend == 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true' }}
         runs-on: ubuntu-latest
         env:
             VERCEL_ORG_ID: team_wVMuGIO0dprj7RL0HZw21CMD
