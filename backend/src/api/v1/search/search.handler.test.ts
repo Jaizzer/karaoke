@@ -1,10 +1,5 @@
-// Unlike every other integration test in this codebase, this one mocks its
-// external dependencies (YouTube + Anthropic) instead of hitting them for
-// real — the whole point of youtube.ts/llm.ts being separate modules is that
-// CI never needs real API keys or makes real network calls. Jest's ESM
-// support requires `jest.unstable_mockModule` (not the CJS-only `jest.mock`
-// auto-hoisting) *before* the mocked modules are imported anywhere in the
-// graph — hence the dynamic `import()`s below instead of static imports.
+// Unlike other integration tests here, this mocks youtube.ts/llm.ts instead of hitting them for real, so CI
+// needs no API keys. jest.unstable_mockModule requires dynamic import()s below, not static ones.
 import {
 	jest,
 	describe,

@@ -84,8 +84,8 @@ const resendApiKey =
 // Same optional/forced-unset-in-tests reasoning; search.handler.ts returns 503 when these are unset.
 const youtubeApiKey =
 	nodeEnv === 'test' ? undefined : process.env.YOUTUBE_API_KEY;
-const anthropicApiKey =
-	nodeEnv === 'test' ? undefined : process.env.ANTHROPIC_API_KEY;
+const openrouterApiKey =
+	nodeEnv === 'test' ? undefined : process.env.OPENROUTER_API_KEY;
 
 const config = {
 	port,
@@ -96,7 +96,7 @@ const config = {
 	frontendUrl,
 	resendApiKey,
 	youtubeApiKey,
-	anthropicApiKey,
+	openrouterApiKey,
 };
 
 export default config;

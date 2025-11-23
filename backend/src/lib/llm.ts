@@ -1,31 +1,24 @@
-import Anthropic from '@anthropic-ai/sdk';
 import config from '../config/env.ts';
 import ServiceNotConfiguredError from './serviceNotConfiguredError.ts';
 import type { YoutubeCandidate } from './youtube.ts';
 
-// Haiku is plenty for this — it's a classification/ranking call over a
-// short candidate list, not open-ended reasoning.
-const MODEL = 'claude-haiku-4-5';
-
-let client: Anthropic | undefined;
-function getClient(): Anthropic {
-	if (!config.anthropicApiKey) {
-		throw new ServiceNotConfiguredError(
-			'ANTHROPIC_API_KEY is not configured.',
-		);
-	}
-	client ??= new Anthropic({ apiKey: config.anthropicApiKey });
-	return client;
-}
+// A free-tier OpenRouter model, a cost-free stopgap; swap this (and nothing else here) to change provider/model.
+const MODEL = 'nvidia/nemotron-3.5-lightning:free';
+const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 
 interface SelectCandidatesInput {
 	indices: number[];
 }
 
-// Ranks/filters YouTube search results against the guest's original query
-// (title/artist/lyric snippet, typos and all) using a forced tool call —
-// `strict: true` guarantees the response is a well-formed list of indices,
-// not free-form text this has to parse.
+interface OpenRouterToolCall {
+	function: { arguments: string };
+}
+
+interface OpenRouterResponse {
+	choices?: { message?: { tool_calls?: OpenRouterToolCall[] } }[];
+}
+
+// Ranks/filters results against the guest's original query using a forced tool call, so the response is indices, not text to parse.
 export async function rankCandidates(
 	query: string,
 	candidates: YoutubeCandidate[],
@@ -35,7 +28,12 @@ export async function rankCandidates(
 		return [];
 	}
 
-	const anthropic = getClient();
+	if (!config.openrouterApiKey) {
+		throw new ServiceNotConfiguredError(
+			'OPENROUTER_API_KEY is not configured.',
+		);
+	}
+
 	const candidateList = candidates
 		.map(
 			(candidate, index) =>
@@ -43,47 +41,63 @@ export async function rankCandidates(
 		)
 		.join('\n');
 
-	const response = await anthropic.messages.create({
-		model: MODEL,
-		max_tokens: 256,
-		messages: [
-			{
-				role: 'user',
-				content: `A karaoke guest searched for: "${query}" — this may be misspelled, a lyric snippet, an artist name, or a song title. Here are YouTube search results:\n${candidateList}\n\nPick up to ${String(limit)} of these that best match what the guest is actually looking for, best match first. Prefer official audio/video, lyric videos, or karaoke/instrumental versions over unrelated content, reactions, or covers unless the query specifically asks for those. Use view count only as a tiebreaker.`,
-			},
-		],
-		tools: [
-			{
-				name: 'select_candidates',
-				description:
-					'Return the indices of the best-matching candidates, ranked best match first.',
-				input_schema: {
-					type: 'object',
-					properties: {
-						indices: {
-							type: 'array',
-							items: { type: 'integer' },
-							description: `Up to ${String(limit)} indices into the candidate list, ranked best match first.`,
+	const response = await fetch(ENDPOINT, {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${config.openrouterApiKey}`,
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify({
+			model: MODEL,
+			messages: [
+				{
+					role: 'user',
+					content: `A karaoke guest searched for: "${query}" — this may be misspelled, a lyric snippet, an artist name, or a song title. Here are YouTube search results:\n${candidateList}\n\nPick up to ${String(limit)} of these that best match what the guest is actually looking for, best match first. Prefer official audio/video, lyric videos, or karaoke/instrumental versions over unrelated content, reactions, or covers unless the query specifically asks for those. Use view count only as a tiebreaker.`,
+				},
+			],
+			tools: [
+				{
+					type: 'function',
+					function: {
+						name: 'select_candidates',
+						description:
+							'Return the indices of the best-matching candidates, ranked best match first.',
+						parameters: {
+							type: 'object',
+							properties: {
+								indices: {
+									type: 'array',
+									items: { type: 'integer' },
+									description: `Up to ${String(limit)} indices into the candidate list, ranked best match first.`,
+								},
+							},
+							required: ['indices'],
 						},
 					},
-					required: ['indices'],
-					additionalProperties: false,
 				},
-				strict: true,
+			],
+			tool_choice: {
+				type: 'function',
+				function: { name: 'select_candidates' },
 			},
-		],
-		tool_choice: { type: 'tool', name: 'select_candidates' },
+		}),
 	});
 
-	// TypeScript narrows this to the ToolUseBlock variant directly from the
-	// `.type === 'tool_use'` predicate, so `toolUse.input` below is already
-	// known-typed without a second check.
-	const toolUse = response.content.find((block) => block.type === 'tool_use');
-	if (!toolUse) {
+	if (!response.ok) {
+		throw new Error(
+			`OpenRouter request failed: ${String(response.status)} ${await response.text()}`,
+		);
+	}
+
+	const data = (await response.json()) as OpenRouterResponse;
+	const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+	if (!toolCall) {
 		return candidates.slice(0, limit);
 	}
 
-	const { indices } = toolUse.input as SelectCandidatesInput;
+	const { indices } = JSON.parse(
+		toolCall.function.arguments,
+	) as SelectCandidatesInput;
 	const picked = indices
 		.map((index) => candidates[index])
 		.filter(
