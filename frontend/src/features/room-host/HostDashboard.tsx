@@ -9,7 +9,12 @@ import { usePolling } from '../../lib/usePolling.ts';
 import Card from '../../components/Card.tsx';
 import Badge from '../../components/Badge.tsx';
 import Button from '../../components/Button.tsx';
-import QueueList, { type QueueItem } from '../queue/QueueList.tsx';
+import {
+	NowPlayingCard,
+	NextUpCard,
+	UpNextList,
+	type QueueItem,
+} from '../queue/QueueList.tsx';
 import YoutubePlayer from '../playback/YoutubePlayer.tsx';
 
 interface Room {
@@ -30,6 +35,7 @@ export default function HostDashboard() {
 	const [room, setRoom] = useState<Room | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
+	const [showRoomCode, setShowRoomCode] = useState(false);
 
 	const { data: queueData, refetch: refetchQueue } =
 		usePolling<QueueResponse>(
@@ -38,7 +44,24 @@ export default function HostDashboard() {
 		);
 	const queueItems = queueData?.queueItems ?? [];
 	const nowPlaying = queueItems.find((item) => item.status === 'PLAYING');
-	const nextQueued = queueItems.find((item) => item.status === 'QUEUED');
+	const upNext = queueItems.filter((item) => item.status === 'QUEUED');
+	const nextQueued = upNext[0];
+	const restOfQueue = upNext.slice(1);
+
+	useEffect(() => {
+		if (!showRoomCode) {
+			return;
+		}
+		function handleKeyDown(event: KeyboardEvent) {
+			if (event.key === 'Escape') {
+				setShowRoomCode(false);
+			}
+		}
+		window.addEventListener('keydown', handleKeyDown);
+		return () => {
+			window.removeEventListener('keydown', handleKeyDown);
+		};
+	}, [showRoomCode]);
 
 	useEffect(() => {
 		if (!code) {
@@ -143,37 +166,100 @@ export default function HostDashboard() {
 
 	return (
 		<div className='space-y-6 py-6'>
-			{nowPlaying && (
-				<YoutubePlayer
-					videoId={nowPlaying.youtubeVideoId}
-					onEnded={() => void handleSongEnded()}
-				/>
-			)}
+			<button
+				type='button'
+				onClick={() => {
+					setShowRoomCode(true);
+				}}
+				className='flex items-center gap-2 rounded-full border border-border bg-transparent px-3 py-2 text-xs font-semibold text-text-muted transition-colors hover:border-accent hover:text-text'
+			>
+				<svg
+					viewBox='0 0 24 24'
+					fill='none'
+					stroke='currentColor'
+					strokeWidth='2'
+					strokeLinecap='round'
+					strokeLinejoin='round'
+					className='h-4 w-4'
+				>
+					<circle cx='18' cy='5' r='3' />
+					<circle cx='6' cy='12' r='3' />
+					<circle cx='18' cy='19' r='3' />
+					<line x1='8.6' y1='10.5' x2='15.4' y2='6.5' />
+					<line x1='8.6' y1='13.5' x2='15.4' y2='17.5' />
+				</svg>
+				Share Karaoke
+			</button>
 
-			<Card className='space-y-4 p-6 text-center'>
-				<div className='flex items-center justify-center gap-2'>
-					<h2 className='text-2xl font-bold text-text'>
-						{room.name ?? `Room ${room.code}`}
-					</h2>
-					<Badge
-						tone={room.status === 'OPEN' ? 'success' : 'default'}
+			<NextUpCard
+				item={nextQueued}
+				canRemove={() => true}
+				onRemove={(item) => void handleRemove(item)}
+			/>
+
+			<YoutubePlayer
+				videoId={nowPlaying?.youtubeVideoId}
+				onEnded={() => void handleSongEnded()}
+			/>
+
+			<NowPlayingCard
+				item={nowPlaying}
+				canRemove={() => true}
+				onRemove={(item) => void handleRemove(item)}
+			/>
+
+			{showRoomCode && (
+				<div
+					className='fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm'
+					onClick={() => {
+						setShowRoomCode(false);
+					}}
+				>
+					<Card
+						className='w-full max-w-sm space-y-4 p-6 text-center'
+						onClick={(event) => {
+							event.stopPropagation();
+						}}
 					>
-						{room.status}
-					</Badge>
-				</div>
+						<div className='flex items-center justify-center gap-2'>
+							<h2 className='text-xl font-bold text-text'>
+								{room.name ?? `Room ${room.code}`}
+							</h2>
+							<Badge
+								tone={
+									room.status === 'OPEN'
+										? 'success'
+										: 'default'
+								}
+							>
+								{room.status}
+							</Badge>
+						</div>
 
-				<div className='flex justify-center rounded-md bg-white p-4'>
-					<QRCodeSVG value={joinUrl} size={200} />
+						<p className='font-mono text-4xl font-bold tracking-widest text-text'>
+							{room.code}
+						</p>
+						<div className='flex justify-center rounded-md bg-white p-4'>
+							<QRCodeSVG value={joinUrl} size={200} />
+						</div>
+						<p className='text-sm text-text-muted'>
+							Scan to join, or go to{' '}
+							<span className='font-mono text-text'>
+								{joinUrl}
+							</span>
+						</p>
+						<Button
+							type='button'
+							variant='ghost'
+							onClick={() => {
+								setShowRoomCode(false);
+							}}
+						>
+							Close
+						</Button>
+					</Card>
 				</div>
-
-				<p className='text-sm text-text-muted'>
-					Scan to join, or go to{' '}
-					<span className='font-mono text-text'>{joinUrl}</span>
-				</p>
-				<p className='font-mono text-3xl font-bold tracking-widest text-text'>
-					{room.code}
-				</p>
-			</Card>
+			)}
 
 			<Card className='space-y-4 p-6'>
 				<div className='flex items-center justify-between gap-4'>
@@ -212,11 +298,18 @@ export default function HostDashboard() {
 				)}
 			</Card>
 
-			<QueueList
-				queueItems={queueItems}
-				canRemove={() => true}
-				onRemove={(item) => void handleRemove(item)}
-			/>
+			{restOfQueue.length > 0 && (
+				<div className='space-y-2'>
+					<h3 className='text-sm font-semibold text-text'>
+						Also queued
+					</h3>
+					<UpNextList
+						items={restOfQueue}
+						canRemove={() => true}
+						onRemove={(item) => void handleRemove(item)}
+					/>
+				</div>
+			)}
 		</div>
 	);
 }
