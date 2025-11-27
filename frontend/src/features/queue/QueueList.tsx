@@ -1,8 +1,5 @@
-// Shared between the host dashboard and the member queue view — both poll
-// the same GET /rooms/:code/queue endpoint and just differ in which items
-// they're allowed to remove (see `canRemove`), and in how NowPlayingCard /
-// UpNextList are arranged (HostDisplayPage puts UpNextList above the
-// video player; QueueList's own default order is used everywhere else).
+// Shared between the host dashboard and member queue view; they differ only in canRemove and layout
+// (HostDashboard splits out a featured NextUpCard, everywhere else just stacks NowPlayingCard + UpNextList).
 import Card from '../../components/Card.tsx';
 import Button from '../../components/Button.tsx';
 
@@ -21,19 +18,20 @@ interface RemoveControls {
 	onRemove: (item: QueueItem) => void;
 }
 
-interface NowPlayingCardProps extends RemoveControls {
+interface FeaturedQueueCardProps extends RemoveControls {
 	item: QueueItem | undefined;
+	label: string;
+	actionLabel: string;
 }
 
-// `canRemove` is ownership-only (see MemberRoomPage/HostDashboard), not
-// status-aware, so the same predicate that gates removing a still-queued
-// song also gates stopping this one while it's playing — the host can
-// always stop it, a guest only if they're the one who added it.
-export function NowPlayingCard({
+// canRemove is ownership-only, not status-aware, so the same predicate gates removing and stopping a song.
+function FeaturedQueueCard({
 	item,
+	label,
+	actionLabel,
 	canRemove,
 	onRemove,
-}: NowPlayingCardProps) {
+}: FeaturedQueueCardProps) {
 	if (!item) {
 		return null;
 	}
@@ -47,7 +45,7 @@ export function NowPlayingCard({
 			/>
 			<div className='min-w-0 flex-1'>
 				<p className='text-xs font-semibold tracking-wide text-accent uppercase'>
-					Now playing
+					{label}
 				</p>
 				<p className='truncate text-sm font-semibold text-text'>
 					{item.title}
@@ -65,10 +63,26 @@ export function NowPlayingCard({
 						onRemove(item);
 					}}
 				>
-					Stop
+					{actionLabel}
 				</Button>
 			)}
 		</Card>
+	);
+}
+
+interface SingleItemCardProps extends RemoveControls {
+	item: QueueItem | undefined;
+}
+
+export function NowPlayingCard(props: SingleItemCardProps) {
+	return (
+		<FeaturedQueueCard {...props} label='Now playing' actionLabel='Stop' />
+	);
+}
+
+export function NextUpCard(props: SingleItemCardProps) {
+	return (
+		<FeaturedQueueCard {...props} label='Up next' actionLabel='Remove' />
 	);
 }
 
@@ -76,13 +90,14 @@ interface UpNextListProps extends RemoveControls {
 	items: QueueItem[];
 }
 
+// Height-capped and scrollable since a queue can get long; holds everything beyond the one song in NextUpCard.
 export function UpNextList({ items, canRemove, onRemove }: UpNextListProps) {
 	if (items.length === 0) {
 		return <p className='text-sm text-text-muted'>Nothing queued yet.</p>;
 	}
 
 	return (
-		<ul className='space-y-2'>
+		<ul className='max-h-72 space-y-2 overflow-y-auto pr-1'>
 			{items.map((item) => (
 				<li key={item.id}>
 					<Card className='flex items-center gap-3 p-3'>
