@@ -1,12 +1,5 @@
-// The one golden-path E2E test this app has: host signs up, creates a
-// room, a guest joins with no auth prompt, queues songs, the host
-// auto-advances through them with zero manual intervention, and a guest
-// can remove their own still-queued song. Search itself calls YouTube +
-// Anthropic — this environment has no real keys for either, so that step
-// is only checked for graceful degradation (a 503 message, not a crash);
-// everything downstream of "a song is in the queue" is exercised by
-// queueing directly through the API, the same way a real search result
-// would.
+// The one golden-path E2E test this app has: host creates a room, a guest joins with no auth prompt, queues
+// songs, the host auto-advances through them, and a guest removes their own song. Search just needs to resolve to something, keys or not.
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 
@@ -20,6 +13,10 @@ test('host creates a room; a guest joins, queues songs, and the host auto-advanc
 	page,
 	browser,
 }) => {
+	// Above Playwright's 30s default, the search step below can hit a real
+	// free-tier LLM whose latency varies far more than a paid model's would.
+	test.setTimeout(90000);
+
 	const email = `test-${randomUUID()}@example.com`;
 	const password = 'a-reasonably-long-test-password';
 
@@ -56,14 +53,21 @@ test('host creates a room; a guest joins, queues songs, and the host auto-advanc
 	await guestPage.waitForURL(`**/rooms/${code}`);
 	await expect(guestPage.getByText('Joined as')).toBeVisible();
 
-	// Search degrades gracefully without real YouTube/Anthropic keys.
+	// Search either degrades gracefully (no keys, e.g. CI) or returns real results; this only checks it resolves
+	// to one of the two instead of hanging. The queue is still empty here, so a bare `ul li` uniquely identifies a result.
 	await guestPage
 		.getByPlaceholder('Song title, artist, or lyrics')
 		.fill('test song');
 	await guestPage.getByRole('button', { name: 'Search' }).click();
-	await expect(
-		guestPage.getByText('Search is not available right now.'),
-	).toBeVisible();
+	const searchUnavailable = guestPage.getByText(
+		'Search is not available right now.',
+	);
+	const searchResult = guestPage.locator('ul li').first();
+	// Generous timeout, a free-tier LLM's latency can spike well above its
+	// typical response time under load, and this step waits on a real call.
+	await expect(searchUnavailable.or(searchResult)).toBeVisible({
+		timeout: 45000,
+	});
 
 	const sessionToken = await guestPage.evaluate((roomCode: string) => {
 		const raw = localStorage.getItem(`karaoke:room-member:${roomCode}`);
@@ -96,9 +100,11 @@ test('host creates a room; a guest joins, queues songs, and the host auto-advanc
 		timeout: 10000,
 	});
 	await expect(page.getByText('First Song')).toBeVisible();
+	// YoutubePlayer.tsx reuses one player instance and swaps videos over postMessage, never touching the iframe's
+	// src, so this only confirms the real embed mounted; the title assertion above covers which video loaded.
 	await expect(page.locator('iframe').first()).toHaveAttribute(
 		'src',
-		/jNQXAC9IVRw/,
+		/youtube\.com\/embed/,
 		{ timeout: 10000 },
 	);
 
