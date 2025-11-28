@@ -39,6 +39,8 @@ export async function updateRoom(
 	data: {
 		name?: string | undefined;
 		autoSelect?: boolean | undefined;
+		aiSearchEnabled?: boolean | undefined;
+		appendKaraoke?: boolean | undefined;
 		status?: 'OPEN' | 'CLOSED' | undefined;
 	},
 ) {
@@ -49,6 +51,12 @@ export async function updateRoom(
 			...(data.name !== undefined && { name: data.name }),
 			...(data.autoSelect !== undefined && {
 				autoSelect: data.autoSelect,
+			}),
+			...(data.aiSearchEnabled !== undefined && {
+				aiSearchEnabled: data.aiSearchEnabled,
+			}),
+			...(data.appendKaraoke !== undefined && {
+				appendKaraoke: data.appendKaraoke,
 			}),
 			...(data.status !== undefined && { status: data.status }),
 		},

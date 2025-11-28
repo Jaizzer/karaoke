@@ -15,6 +15,8 @@ interface RoomResponseBody {
 		name: string | null;
 		hostId: string;
 		autoSelect: boolean;
+		aiSearchEnabled: boolean;
+		appendKaraoke: boolean;
 		status: 'OPEN' | 'CLOSED';
 	};
 }
@@ -62,6 +64,8 @@ describe('/api/v1/rooms', () => {
 		const room = roomFrom(response);
 		expect(room.hostId).toBe(hostId);
 		expect(room.autoSelect).toBe(false);
+		expect(room.aiSearchEnabled).toBe(true);
+		expect(room.appendKaraoke).toBe(true);
 		expect(room.status).toBe('OPEN');
 		expect(room.code).toMatch(/^[A-Z2-9]{6}$/);
 	});
@@ -117,6 +121,18 @@ describe('/api/v1/rooms', () => {
 			.send({ status: 'CLOSED' });
 		expect(closed.status).toBe(200);
 		expect(roomFrom(closed).status).toBe('CLOSED');
+	});
+
+	test('lets the host toggle aiSearchEnabled and appendKaraoke', async () => {
+		const created = await hostAgent.post('/api/v1/rooms').send({});
+		const code = roomFrom(created).code;
+
+		const toggled = await hostAgent
+			.patch(`/api/v1/rooms/${code}`)
+			.send({ aiSearchEnabled: false, appendKaraoke: false });
+		expect(toggled.status).toBe(200);
+		expect(roomFrom(toggled).aiSearchEnabled).toBe(false);
+		expect(roomFrom(toggled).appendKaraoke).toBe(false);
 	});
 
 	test('rejects an update with an invalid body', async () => {

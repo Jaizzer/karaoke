@@ -12,6 +12,8 @@ export const CreateRoomSchema = z.object({
 export const UpdateRoomSchema = z.object({
 	name: z.string().min(1).max(100).optional(),
 	autoSelect: z.boolean().optional(),
+	aiSearchEnabled: z.boolean().optional(),
+	appendKaraoke: z.boolean().optional(),
 	status: z.enum(['OPEN', 'CLOSED']).optional(),
 });
 

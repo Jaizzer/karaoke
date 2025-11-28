@@ -109,16 +109,24 @@ enum QueueItemStatus {
 // QR guests scan to join (see room-members below) — unique so it can be
 // looked up directly, with no numeric id exposed to guests.
 model Room {
-  id         String      @id @default(uuid())
-  code       String      @unique
-  name       String?
-  hostId     String
-  host       User        @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  autoSelect Boolean     @default(false)
-  status     RoomStatus  @default(OPEN)
-  createdAt  DateTime    @default(now())
-  members    RoomMember[]
-  queueItems QueueItem[]
+  id              String       @id @default(uuid())
+  code            String       @unique
+  name            String?
+  hostId          String
+  host            User         @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  autoSelect      Boolean      @default(false)
+  // Whether search results are LLM-ranked/filtered (llm.ts) or just
+  // YouTube's own raw relevance order — a host can turn this off to avoid
+  // the LLM's variable latency and lean on YouTube's own search instead.
+  aiSearchEnabled Boolean      @default(true)
+  // When on, every search query is sent to YouTube with " karaoke"
+  // appended (search.service.ts), biasing results toward singable
+  // instrumental/backing-track versions instead of original recordings.
+  appendKaraoke   Boolean      @default(true)
+  status          RoomStatus   @default(OPEN)
+  createdAt       DateTime     @default(now())
+  members         RoomMember[]
+  queueItems      QueueItem[]
 
   @@index([hostId])
   @@map("room")

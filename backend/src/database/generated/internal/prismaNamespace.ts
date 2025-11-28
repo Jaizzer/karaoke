@@ -1044,6 +1044,8 @@ export const RoomScalarFieldEnum = {
   name: 'name',
   hostId: 'hostId',
   autoSelect: 'autoSelect',
+  aiSearchEnabled: 'aiSearchEnabled',
+  appendKaraoke: 'appendKaraoke',
   status: 'status',
   createdAt: 'createdAt'
 } as const
