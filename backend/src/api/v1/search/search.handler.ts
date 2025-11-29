@@ -36,7 +36,12 @@ export async function postSearch(req: Request, res: Response) {
 
 	let results;
 	try {
-		results = await searchSongs(parsedBody.data.query, room.autoSelect);
+		results = await searchSongs(
+			parsedBody.data.query,
+			room.autoSelect,
+			room.aiSearchEnabled,
+			room.appendKaraoke,
+		);
 	} catch (error) {
 		if (error instanceof ServiceNotConfiguredError) {
 			res.status(503).json({

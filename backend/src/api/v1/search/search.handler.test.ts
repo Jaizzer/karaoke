@@ -197,10 +197,80 @@ describe('/api/v1/rooms/:code/search', () => {
 		expect(response.status).toBe(200);
 		const body = response.body as { autoSelect: boolean };
 		expect(body.autoSelect).toBe(false);
+		// ranked against the guest's literal query, appendKaraoke (on by
+		// default) only changes what's sent to YouTube, asserted below
 		expect(rankCandidates).toHaveBeenCalledWith(
 			'fake song',
 			fakeCandidates,
 			5,
 		);
+	});
+
+	test('appends "karaoke" to the YouTube query by default', async () => {
+		const room = await createRoom();
+		const token = await joinRoom(room.code);
+
+		searchYoutube.mockResolvedValue(fakeCandidates);
+		rankCandidates.mockResolvedValue(fakeCandidates);
+
+		await request(app)
+			.post(`/api/v1/rooms/${room.code}/search`)
+			.set('Authorization', `Bearer ${token}`)
+			.send({ query: 'fake song' });
+
+		expect(searchYoutube).toHaveBeenCalledWith('fake song karaoke');
+	});
+
+	test('does not double up "karaoke" if the guest already typed it', async () => {
+		const room = await createRoom();
+		const token = await joinRoom(room.code);
+
+		searchYoutube.mockResolvedValue(fakeCandidates);
+		rankCandidates.mockResolvedValue(fakeCandidates);
+
+		await request(app)
+			.post(`/api/v1/rooms/${room.code}/search`)
+			.set('Authorization', `Bearer ${token}`)
+			.send({ query: 'fake song Karaoke Version' });
+
+		expect(searchYoutube).toHaveBeenCalledWith('fake song Karaoke Version');
+	});
+
+	test('skips appending "karaoke" when appendKaraoke is off', async () => {
+		const room = await createRoom();
+		const token = await joinRoom(room.code);
+		await hostAgent
+			.patch(`/api/v1/rooms/${room.code}`)
+			.send({ appendKaraoke: false });
+
+		searchYoutube.mockResolvedValue(fakeCandidates);
+		rankCandidates.mockResolvedValue(fakeCandidates);
+
+		await request(app)
+			.post(`/api/v1/rooms/${room.code}/search`)
+			.set('Authorization', `Bearer ${token}`)
+			.send({ query: 'fake song' });
+
+		expect(searchYoutube).toHaveBeenCalledWith('fake song');
+	});
+
+	test('skips the LLM ranking call when aiSearchEnabled is off', async () => {
+		const room = await createRoom();
+		const token = await joinRoom(room.code);
+		await hostAgent
+			.patch(`/api/v1/rooms/${room.code}`)
+			.send({ aiSearchEnabled: false });
+
+		searchYoutube.mockResolvedValue(fakeCandidates);
+
+		const response = await request(app)
+			.post(`/api/v1/rooms/${room.code}/search`)
+			.set('Authorization', `Bearer ${token}`)
+			.send({ query: 'fake song' });
+
+		expect(response.status).toBe(200);
+		const body = response.body as { results: YoutubeCandidate[] };
+		expect(body.results).toEqual(fakeCandidates);
+		expect(rankCandidates).not.toHaveBeenCalled();
 	});
 });
