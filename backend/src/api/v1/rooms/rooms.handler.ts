@@ -15,7 +15,11 @@ export async function postRoom(req: Request, res: Response) {
 		return;
 	}
 
-	const room = await createRoom(req.user.id, parsedBody.data.name);
+	const room = await createRoom(
+		req.user.id,
+		req.user.name,
+		parsedBody.data.name,
+	);
 	res.status(201).json({ room });
 }
 

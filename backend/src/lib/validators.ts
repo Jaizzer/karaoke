@@ -11,7 +11,6 @@ export const CreateRoomSchema = z.object({
 
 export const UpdateRoomSchema = z.object({
 	name: z.string().min(1).max(100).optional(),
-	autoSelect: z.boolean().optional(),
 	aiSearchEnabled: z.boolean().optional(),
 	appendKaraoke: z.boolean().optional(),
 	status: z.enum(['OPEN', 'CLOSED']).optional(),
@@ -21,8 +20,11 @@ export const JoinRoomSchema = z.object({
 	displayName: z.string().min(1).max(50),
 });
 
+// useAiSearch/autoSelect are the guest's own per-search choice; the room only gates whether useAiSearch can take effect.
 export const SearchSchema = z.object({
 	query: z.string().min(1).max(200),
+	useAiSearch: z.boolean().optional(),
+	autoSelect: z.boolean().optional(),
 });
 
 export const AddQueueItemSchema = z.object({
@@ -30,4 +32,8 @@ export const AddQueueItemSchema = z.object({
 	title: z.string().min(1).max(300),
 	channelTitle: z.string().min(1).max(300),
 	thumbnailUrl: z.url(),
+});
+
+export const MoveQueueItemSchema = z.object({
+	direction: z.enum(['up', 'down']),
 });

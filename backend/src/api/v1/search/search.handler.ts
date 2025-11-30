@@ -1,26 +1,40 @@
 import type { Request, Response } from 'express';
+import { fromNodeHeaders } from 'better-auth/node';
+import { auth } from '../../../lib/auth.ts';
 import { SearchSchema } from '../../../lib/validators.ts';
 import resolveRoom from '../../../lib/resolveRoom.ts';
 import ServiceNotConfiguredError from '../../../lib/serviceNotConfiguredError.ts';
+import { getBearerToken } from '../../../middleware/requireRoomMember.ts';
+import getRoomMemberByToken from '../../../services/getRoomMemberByToken.ts';
 import { searchSongs } from './search.service.ts';
 
+// same two-caller shape as postQueueItem in queue.handler.ts: host
+// (session) or a joined guest (bearer token) can both search, so this
+// resolves both credentials inline instead of gating on
+// requireAuth/requireRoomMember alone.
 export async function postSearch(req: Request, res: Response) {
-	if (!req.roomMember) {
-		res.status(401).json({ message: 'Not joined to a room.' });
-		return;
-	}
-
 	const room = await resolveRoom(req, res);
 	if (!room) {
 		return;
 	}
 
-	// Same reasoning queue routes use: a room member's token
-	// is only valid for the room it joined, not any room whose code happens
-	// to appear in the URL.
-	if (req.roomMember.roomId !== room.id) {
-		res.status(403).json({ message: 'Not a member of this room.' });
-		return;
+	const session = await auth.api.getSession({
+		headers: fromNodeHeaders(req.headers),
+	});
+	const isHost = session?.user.id === room.hostId;
+
+	if (!isHost) {
+		const token = getBearerToken(req);
+		const member = token ? await getRoomMemberByToken(token) : null;
+		if (!member) {
+			res.status(401).json({ message: 'Not joined to a room.' });
+			return;
+		}
+		// Same reasoning queue routes use: a member's token is only valid for the room it joined.
+		if (member.roomId !== room.id) {
+			res.status(403).json({ message: 'Not a member of this room.' });
+			return;
+		}
 	}
 
 	if (room.status !== 'OPEN') {
@@ -34,13 +48,18 @@ export async function postSearch(req: Request, res: Response) {
 		return;
 	}
 
+	// The room only grants permission; the caller still opts in per search, and needs AI search on to use autoSelect.
+	const useAiSearch =
+		room.aiSearchEnabled && (parsedBody.data.useAiSearch ?? false);
+	const autoSelect = useAiSearch && (parsedBody.data.autoSelect ?? false);
+
 	let results;
 	try {
 		results = await searchSongs(
 			parsedBody.data.query,
-			room.autoSelect,
-			room.aiSearchEnabled,
 			room.appendKaraoke,
+			useAiSearch,
+			autoSelect,
 		);
 	} catch (error) {
 		if (error instanceof ServiceNotConfiguredError) {
@@ -52,5 +71,9 @@ export async function postSearch(req: Request, res: Response) {
 		throw error;
 	}
 
-	res.status(200).json({ results, autoSelect: room.autoSelect });
+	res.status(200).json({
+		results,
+		autoSelect,
+		aiSearchAvailable: room.aiSearchEnabled,
+	});
 }

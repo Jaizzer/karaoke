@@ -153,12 +153,32 @@ describe('/api/v1/rooms/:code/search', () => {
 		expect(response.status).toBe(503);
 	});
 
-	test('requests a single top match when autoSelect is on', async () => {
+	test('does not use AI search unless the guest opts in', async () => {
 		const room = await createRoom();
 		const token = await joinRoom(room.code);
-		await hostAgent
-			.patch(`/api/v1/rooms/${room.code}`)
-			.send({ autoSelect: true });
+
+		searchYoutube.mockResolvedValue(fakeCandidates);
+
+		const response = await request(app)
+			.post(`/api/v1/rooms/${room.code}/search`)
+			.set('Authorization', `Bearer ${token}`)
+			.send({ query: 'fake song' });
+
+		expect(response.status).toBe(200);
+		const body = response.body as {
+			results: YoutubeCandidate[];
+			autoSelect: boolean;
+			aiSearchAvailable: boolean;
+		};
+		expect(body.autoSelect).toBe(false);
+		expect(body.aiSearchAvailable).toBe(true);
+		expect(body.results).toEqual(fakeCandidates);
+		expect(rankCandidates).not.toHaveBeenCalled();
+	});
+
+	test('requests a single top match when the guest opts into AI search and autoSelect', async () => {
+		const room = await createRoom();
+		const token = await joinRoom(room.code);
 
 		searchYoutube.mockResolvedValue(fakeCandidates);
 		rankCandidates.mockResolvedValue(fakeCandidates.slice(0, 1));
@@ -166,7 +186,7 @@ describe('/api/v1/rooms/:code/search', () => {
 		const response = await request(app)
 			.post(`/api/v1/rooms/${room.code}/search`)
 			.set('Authorization', `Bearer ${token}`)
-			.send({ query: 'fake song' });
+			.send({ query: 'fake song', useAiSearch: true, autoSelect: true });
 
 		expect(response.status).toBe(200);
 		const body = response.body as {
@@ -182,7 +202,7 @@ describe('/api/v1/rooms/:code/search', () => {
 		);
 	});
 
-	test('requests up to 5 ranked matches when autoSelect is off', async () => {
+	test('requests up to 5 ranked matches when the guest opts into AI search without autoSelect', async () => {
 		const room = await createRoom();
 		const token = await joinRoom(room.code);
 
@@ -192,7 +212,7 @@ describe('/api/v1/rooms/:code/search', () => {
 		const response = await request(app)
 			.post(`/api/v1/rooms/${room.code}/search`)
 			.set('Authorization', `Bearer ${token}`)
-			.send({ query: 'fake song' });
+			.send({ query: 'fake song', useAiSearch: true });
 
 		expect(response.status).toBe(200);
 		const body = response.body as { autoSelect: boolean };
@@ -204,6 +224,32 @@ describe('/api/v1/rooms/:code/search', () => {
 			fakeCandidates,
 			5,
 		);
+	});
+
+	test("ignores the guest's useAiSearch when the host has disabled it", async () => {
+		const room = await createRoom();
+		const token = await joinRoom(room.code);
+		await hostAgent
+			.patch(`/api/v1/rooms/${room.code}`)
+			.send({ aiSearchEnabled: false });
+
+		searchYoutube.mockResolvedValue(fakeCandidates);
+
+		const response = await request(app)
+			.post(`/api/v1/rooms/${room.code}/search`)
+			.set('Authorization', `Bearer ${token}`)
+			.send({ query: 'fake song', useAiSearch: true, autoSelect: true });
+
+		expect(response.status).toBe(200);
+		const body = response.body as {
+			results: YoutubeCandidate[];
+			autoSelect: boolean;
+			aiSearchAvailable: boolean;
+		};
+		expect(body.aiSearchAvailable).toBe(false);
+		expect(body.autoSelect).toBe(false);
+		expect(body.results).toEqual(fakeCandidates);
+		expect(rankCandidates).not.toHaveBeenCalled();
 	});
 
 	test('appends "karaoke" to the YouTube query by default', async () => {
@@ -252,25 +298,5 @@ describe('/api/v1/rooms/:code/search', () => {
 			.send({ query: 'fake song' });
 
 		expect(searchYoutube).toHaveBeenCalledWith('fake song');
-	});
-
-	test('skips the LLM ranking call when aiSearchEnabled is off', async () => {
-		const room = await createRoom();
-		const token = await joinRoom(room.code);
-		await hostAgent
-			.patch(`/api/v1/rooms/${room.code}`)
-			.send({ aiSearchEnabled: false });
-
-		searchYoutube.mockResolvedValue(fakeCandidates);
-
-		const response = await request(app)
-			.post(`/api/v1/rooms/${room.code}/search`)
-			.set('Authorization', `Bearer ${token}`)
-			.send({ query: 'fake song' });
-
-		expect(response.status).toBe(200);
-		const body = response.body as { results: YoutubeCandidate[] };
-		expect(body.results).toEqual(fakeCandidates);
-		expect(rankCandidates).not.toHaveBeenCalled();
 	});
 });

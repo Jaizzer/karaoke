@@ -14,7 +14,6 @@ interface RoomResponseBody {
 		code: string;
 		name: string | null;
 		hostId: string;
-		autoSelect: boolean;
 		aiSearchEnabled: boolean;
 		appendKaraoke: boolean;
 		status: 'OPEN' | 'CLOSED';
@@ -63,7 +62,6 @@ describe('/api/v1/rooms', () => {
 
 		const room = roomFrom(response);
 		expect(room.hostId).toBe(hostId);
-		expect(room.autoSelect).toBe(false);
 		expect(room.aiSearchEnabled).toBe(true);
 		expect(room.appendKaraoke).toBe(true);
 		expect(room.status).toBe('OPEN');
@@ -92,7 +90,7 @@ describe('/api/v1/rooms', () => {
 
 		const response = await request(app)
 			.patch(`/api/v1/rooms/${code}`)
-			.send({ autoSelect: true });
+			.send({ aiSearchEnabled: false });
 		expect(response.status).toBe(401);
 	});
 
@@ -102,19 +100,13 @@ describe('/api/v1/rooms', () => {
 
 		const response = await otherAgent
 			.patch(`/api/v1/rooms/${code}`)
-			.send({ autoSelect: true });
+			.send({ aiSearchEnabled: false });
 		expect(response.status).toBe(403);
 	});
 
-	test('lets the host toggle autoSelect and close the room', async () => {
+	test('lets the host close the room', async () => {
 		const created = await hostAgent.post('/api/v1/rooms').send({});
 		const code = roomFrom(created).code;
-
-		const toggled = await hostAgent
-			.patch(`/api/v1/rooms/${code}`)
-			.send({ autoSelect: true });
-		expect(toggled.status).toBe(200);
-		expect(roomFrom(toggled).autoSelect).toBe(true);
 
 		const closed = await hostAgent
 			.patch(`/api/v1/rooms/${code}`)

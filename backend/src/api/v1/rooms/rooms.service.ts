@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { prisma } from '../../../database/prismaClient.ts';
+import { joinRoom } from '../room-members/room-members.service.ts';
 
 // Excludes lookalike characters (0/O, 1/I/L) since guests may type this in by hand.
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -26,19 +27,25 @@ async function generateUniqueCode(): Promise<string> {
 	throw new Error('Failed to generate a unique room code after 5 attempts.');
 }
 
-export async function createRoom(hostId: string, name?: string) {
+// Also creates a host RoomMember row, so a host-added queue item reuses the same addedById as a guest's.
+export async function createRoom(
+	hostId: string,
+	hostName: string,
+	name?: string,
+) {
 	const code = await generateUniqueCode();
 	// exactOptionalPropertyTypes needs the key absent, not undefined, so name is only spread in when given.
-	return prisma.room.create({
+	const room = await prisma.room.create({
 		data: { code, hostId, ...(name !== undefined && { name }) },
 	});
+	await joinRoom(room.id, hostName, true);
+	return room;
 }
 
 export async function updateRoom(
 	id: string,
 	data: {
 		name?: string | undefined;
-		autoSelect?: boolean | undefined;
 		aiSearchEnabled?: boolean | undefined;
 		appendKaraoke?: boolean | undefined;
 		status?: 'OPEN' | 'CLOSED' | undefined;
@@ -49,9 +56,6 @@ export async function updateRoom(
 		where: { id },
 		data: {
 			...(data.name !== undefined && { name: data.name }),
-			...(data.autoSelect !== undefined && {
-				autoSelect: data.autoSelect,
-			}),
 			...(data.aiSearchEnabled !== undefined && {
 				aiSearchEnabled: data.aiSearchEnabled,
 			}),

@@ -136,6 +136,32 @@ describe('/api/v1/rooms/:code/queue', () => {
 		).toContain(created.id);
 	});
 
+	test('lets the host add a song too, with no room-member token', async () => {
+		const room = await createRoom();
+
+		const response = await hostAgent
+			.post(`/api/v1/rooms/${room.code}/queue`)
+			.send(sampleSong);
+		expect(response.status).toBe(201);
+		expect((response.body as QueueItemResponseBody).queueItem.status).toBe(
+			'QUEUED',
+		);
+	});
+
+	test('orders the queue by when items were added', async () => {
+		const room = await createRoom();
+		const { sessionToken } = await joinRoom(room.code);
+
+		const first = await addSong(room.code, sessionToken);
+		const second = await addSong(room.code, sessionToken);
+		const third = await addSong(room.code, sessionToken);
+
+		const list = await request(app).get(`/api/v1/rooms/${room.code}/queue`);
+		expect(
+			(list.body as QueueListResponseBody).queueItems.map((i) => i.id),
+		).toEqual([first.id, second.id, third.id]);
+	});
+
 	test('returns 404 removing a queue item that does not exist', async () => {
 		const room = await createRoom();
 		const response = await hostAgent.delete(
@@ -240,5 +266,55 @@ describe('/api/v1/rooms/:code/queue', () => {
 		expect(
 			(list.body as QueueListResponseBody).queueItems.map((i) => i.id),
 		).not.toContain(item.id);
+	});
+
+	test('rejects moving a queue item with no host session', async () => {
+		const room = await createRoom();
+		const { sessionToken } = await joinRoom(room.code);
+		const item = await addSong(room.code, sessionToken);
+
+		const response = await request(app)
+			.post(`/api/v1/rooms/${room.code}/queue/${item.id}/move`)
+			.send({ direction: 'up' });
+		expect(response.status).toBe(401);
+	});
+
+	test('lets the host swap a queue item with its neighbor', async () => {
+		const room = await createRoom();
+		const { sessionToken } = await joinRoom(room.code);
+		const first = await addSong(room.code, sessionToken);
+		const second = await addSong(room.code, sessionToken);
+
+		const moved = await hostAgent
+			.post(`/api/v1/rooms/${room.code}/queue/${second.id}/move`)
+			.send({ direction: 'up' });
+		expect(moved.status).toBe(200);
+
+		const list = await request(app).get(`/api/v1/rooms/${room.code}/queue`);
+		expect(
+			(list.body as QueueListResponseBody).queueItems.map((i) => i.id),
+		).toEqual([second.id, first.id]);
+	});
+
+	test('returns 409 moving the first item further up', async () => {
+		const room = await createRoom();
+		const { sessionToken } = await joinRoom(room.code);
+		const only = await addSong(room.code, sessionToken);
+
+		const response = await hostAgent
+			.post(`/api/v1/rooms/${room.code}/queue/${only.id}/move`)
+			.send({ direction: 'up' });
+		expect(response.status).toBe(409);
+	});
+
+	test('rejects an invalid move direction', async () => {
+		const room = await createRoom();
+		const { sessionToken } = await joinRoom(room.code);
+		const item = await addSong(room.code, sessionToken);
+
+		const response = await hostAgent
+			.post(`/api/v1/rooms/${room.code}/queue/${item.id}/move`)
+			.send({ direction: 'sideways' });
+		expect(response.status).toBe(400);
 	});
 });

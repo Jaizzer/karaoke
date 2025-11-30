@@ -4,7 +4,7 @@ import { prisma } from '../../../database/prismaClient.ts';
 export async function listQueueItems(roomId: string) {
 	return prisma.queueItem.findMany({
 		where: { roomId, status: { in: ['QUEUED', 'PLAYING'] } },
-		orderBy: { createdAt: 'asc' },
+		orderBy: { position: 'asc' },
 	});
 }
 
@@ -18,7 +18,16 @@ export async function addQueueItem(
 		thumbnailUrl: string;
 	},
 ) {
-	return prisma.queueItem.create({ data: { roomId, addedById, ...data } });
+	// New items go to the back: one more than the current highest position, including PLAYED/REMOVED rows.
+	const highest = await prisma.queueItem.aggregate({
+		where: { roomId },
+		_max: { position: true },
+	});
+	const position = (highest._max.position ?? 0) + 1;
+
+	return prisma.queueItem.create({
+		data: { roomId, addedById, position, ...data },
+	});
 }
 
 export async function getQueueItemById(id: string) {
@@ -45,4 +54,40 @@ export async function finishQueueItem(id: string) {
 		where: { id },
 		data: { status: 'PLAYED', endedAt: new Date() },
 	});
+}
+
+// Swaps this item's position with its immediate QUEUED neighbor; no-op at either end, and PLAYING is left alone.
+export async function moveQueueItem(id: string, direction: 'up' | 'down') {
+	const item = await prisma.queueItem.findUnique({ where: { id } });
+	if (item?.status !== 'QUEUED') {
+		return null;
+	}
+
+	const neighbor = await prisma.queueItem.findFirst({
+		where: {
+			roomId: item.roomId,
+			status: 'QUEUED',
+			position:
+				direction === 'up'
+					? { lt: item.position }
+					: { gt: item.position },
+		},
+		orderBy: { position: direction === 'up' ? 'desc' : 'asc' },
+	});
+	if (!neighbor) {
+		return null;
+	}
+
+	await prisma.$transaction([
+		prisma.queueItem.update({
+			where: { id: item.id },
+			data: { position: neighbor.position },
+		}),
+		prisma.queueItem.update({
+			where: { id: neighbor.id },
+			data: { position: item.position },
+		}),
+	]);
+
+	return prisma.queueItem.findUnique({ where: { id } });
 }
