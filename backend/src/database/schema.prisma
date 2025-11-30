@@ -114,10 +114,11 @@ model Room {
   name            String?
   hostId          String
   host            User         @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  autoSelect      Boolean      @default(false)
-  // Whether search results are LLM-ranked/filtered (llm.ts) or just
-  // YouTube's own raw relevance order — a host can turn this off to avoid
-  // the LLM's variable latency and lean on YouTube's own search instead.
+  // Whether AI-ranked search is available in this room at all — a
+  // per-search host permission gate, not a behavior itself. When on, each
+  // guest separately opts in per search (see search.handler.ts) and, if
+  // they do, can also choose auto-select (the single best match queued
+  // straight away instead of a top-5 they pick from).
   aiSearchEnabled Boolean      @default(true)
   // When on, every search query is sent to YouTube with " karaoke"
   // appended (search.service.ts), biasing results toward singable
@@ -144,6 +145,11 @@ model RoomMember {
   room         Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
   displayName  String
   sessionToken String      @unique
+  // True for the one membership row created alongside the room, for its
+  // own host — lets a host-added queue item reuse the same addedById
+  // foreign key as a guest-added one instead of a separate nullable column
+  // (see rooms.service.ts's createRoom).
+  isHost       Boolean     @default(false)
   createdAt    DateTime    @default(now())
   queueItems   QueueItem[]
 
@@ -154,8 +160,9 @@ model RoomMember {
 // One song queued in a Room. `status` tracks it through the queue:
 // QUEUED -> PLAYING (host started it) -> PLAYED (finished, host can
 // advance to the next QUEUED item) or REMOVED (deleted by the member who
-// added it, or by the host). Ordered FIFO by `createdAt` — no manual
-// reorder yet.
+// added it, or by the host). Ordered by `position`, not `createdAt` — the
+// host can reorder still-QUEUED items (queue.service.ts's moveQueueItem),
+// which swaps two items' positions rather than renumbering the whole list.
 model QueueItem {
   id             String          @id @default(uuid())
   roomId         String
@@ -167,6 +174,7 @@ model QueueItem {
   channelTitle   String
   thumbnailUrl   String
   status         QueueItemStatus @default(QUEUED)
+  position       Int
   createdAt      DateTime        @default(now())
   startedAt      DateTime?
   endedAt        DateTime?

@@ -1043,7 +1043,6 @@ export const RoomScalarFieldEnum = {
   code: 'code',
   name: 'name',
   hostId: 'hostId',
-  autoSelect: 'autoSelect',
   aiSearchEnabled: 'aiSearchEnabled',
   appendKaraoke: 'appendKaraoke',
   status: 'status',
@@ -1058,6 +1057,7 @@ export const RoomMemberScalarFieldEnum = {
   roomId: 'roomId',
   displayName: 'displayName',
   sessionToken: 'sessionToken',
+  isHost: 'isHost',
   createdAt: 'createdAt'
 } as const
 
@@ -1073,6 +1073,7 @@ export const QueueItemScalarFieldEnum = {
   channelTitle: 'channelTitle',
   thumbnailUrl: 'thumbnailUrl',
   status: 'status',
+  position: 'position',
   createdAt: 'createdAt',
   startedAt: 'startedAt',
   endedAt: 'endedAt'
@@ -1185,6 +1186,20 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
  * Reference to a field of type 'Int[]'
  */
 export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Float'
+ */
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+/**
+ * Reference to a field of type 'Float[]'
+ */
+export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
 /**

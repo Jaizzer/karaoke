@@ -20,8 +20,18 @@ export type QueueItemModel = runtime.Types.Result.DefaultSelection<Prisma.$Queue
 
 export type AggregateQueueItem = {
   _count: QueueItemCountAggregateOutputType | null
+  _avg: QueueItemAvgAggregateOutputType | null
+  _sum: QueueItemSumAggregateOutputType | null
   _min: QueueItemMinAggregateOutputType | null
   _max: QueueItemMaxAggregateOutputType | null
+}
+
+export type QueueItemAvgAggregateOutputType = {
+  position: number | null
+}
+
+export type QueueItemSumAggregateOutputType = {
+  position: number | null
 }
 
 export type QueueItemMinAggregateOutputType = {
@@ -33,6 +43,7 @@ export type QueueItemMinAggregateOutputType = {
   channelTitle: string | null
   thumbnailUrl: string | null
   status: $Enums.QueueItemStatus | null
+  position: number | null
   createdAt: Date | null
   startedAt: Date | null
   endedAt: Date | null
@@ -47,6 +58,7 @@ export type QueueItemMaxAggregateOutputType = {
   channelTitle: string | null
   thumbnailUrl: string | null
   status: $Enums.QueueItemStatus | null
+  position: number | null
   createdAt: Date | null
   startedAt: Date | null
   endedAt: Date | null
@@ -61,12 +73,21 @@ export type QueueItemCountAggregateOutputType = {
   channelTitle: number
   thumbnailUrl: number
   status: number
+  position: number
   createdAt: number
   startedAt: number
   endedAt: number
   _all: number
 }
 
+
+export type QueueItemAvgAggregateInputType = {
+  position?: true
+}
+
+export type QueueItemSumAggregateInputType = {
+  position?: true
+}
 
 export type QueueItemMinAggregateInputType = {
   id?: true
@@ -77,6 +98,7 @@ export type QueueItemMinAggregateInputType = {
   channelTitle?: true
   thumbnailUrl?: true
   status?: true
+  position?: true
   createdAt?: true
   startedAt?: true
   endedAt?: true
@@ -91,6 +113,7 @@ export type QueueItemMaxAggregateInputType = {
   channelTitle?: true
   thumbnailUrl?: true
   status?: true
+  position?: true
   createdAt?: true
   startedAt?: true
   endedAt?: true
@@ -105,6 +128,7 @@ export type QueueItemCountAggregateInputType = {
   channelTitle?: true
   thumbnailUrl?: true
   status?: true
+  position?: true
   createdAt?: true
   startedAt?: true
   endedAt?: true
@@ -149,6 +173,18 @@ export type QueueItemAggregateArgs<ExtArgs extends runtime.Types.Extensions.Inte
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: QueueItemAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: QueueItemSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: QueueItemMinAggregateInputType
@@ -179,6 +215,8 @@ export type QueueItemGroupByArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   _count?: QueueItemCountAggregateInputType | true
+  _avg?: QueueItemAvgAggregateInputType
+  _sum?: QueueItemSumAggregateInputType
   _min?: QueueItemMinAggregateInputType
   _max?: QueueItemMaxAggregateInputType
 }
@@ -192,10 +230,13 @@ export type QueueItemGroupByOutputType = {
   channelTitle: string
   thumbnailUrl: string
   status: $Enums.QueueItemStatus
+  position: number
   createdAt: Date
   startedAt: Date | null
   endedAt: Date | null
   _count: QueueItemCountAggregateOutputType | null
+  _avg: QueueItemAvgAggregateOutputType | null
+  _sum: QueueItemSumAggregateOutputType | null
   _min: QueueItemMinAggregateOutputType | null
   _max: QueueItemMaxAggregateOutputType | null
 }
@@ -227,6 +268,7 @@ export type QueueItemWhereInput = {
   channelTitle?: Prisma.StringFilter<"QueueItem"> | string
   thumbnailUrl?: Prisma.StringFilter<"QueueItem"> | string
   status?: Prisma.EnumQueueItemStatusFilter<"QueueItem"> | $Enums.QueueItemStatus
+  position?: Prisma.IntFilter<"QueueItem"> | number
   createdAt?: Prisma.DateTimeFilter<"QueueItem"> | Date | string
   startedAt?: Prisma.DateTimeNullableFilter<"QueueItem"> | Date | string | null
   endedAt?: Prisma.DateTimeNullableFilter<"QueueItem"> | Date | string | null
@@ -243,6 +285,7 @@ export type QueueItemOrderByWithRelationInput = {
   channelTitle?: Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  position?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   startedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   endedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -262,6 +305,7 @@ export type QueueItemWhereUniqueInput = Prisma.AtLeast<{
   channelTitle?: Prisma.StringFilter<"QueueItem"> | string
   thumbnailUrl?: Prisma.StringFilter<"QueueItem"> | string
   status?: Prisma.EnumQueueItemStatusFilter<"QueueItem"> | $Enums.QueueItemStatus
+  position?: Prisma.IntFilter<"QueueItem"> | number
   createdAt?: Prisma.DateTimeFilter<"QueueItem"> | Date | string
   startedAt?: Prisma.DateTimeNullableFilter<"QueueItem"> | Date | string | null
   endedAt?: Prisma.DateTimeNullableFilter<"QueueItem"> | Date | string | null
@@ -278,12 +322,15 @@ export type QueueItemOrderByWithAggregationInput = {
   channelTitle?: Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  position?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   startedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   endedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.QueueItemCountOrderByAggregateInput
+  _avg?: Prisma.QueueItemAvgOrderByAggregateInput
   _max?: Prisma.QueueItemMaxOrderByAggregateInput
   _min?: Prisma.QueueItemMinOrderByAggregateInput
+  _sum?: Prisma.QueueItemSumOrderByAggregateInput
 }
 
 export type QueueItemScalarWhereWithAggregatesInput = {
@@ -298,6 +345,7 @@ export type QueueItemScalarWhereWithAggregatesInput = {
   channelTitle?: Prisma.StringWithAggregatesFilter<"QueueItem"> | string
   thumbnailUrl?: Prisma.StringWithAggregatesFilter<"QueueItem"> | string
   status?: Prisma.EnumQueueItemStatusWithAggregatesFilter<"QueueItem"> | $Enums.QueueItemStatus
+  position?: Prisma.IntWithAggregatesFilter<"QueueItem"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"QueueItem"> | Date | string
   startedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"QueueItem"> | Date | string | null
   endedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"QueueItem"> | Date | string | null
@@ -310,6 +358,7 @@ export type QueueItemCreateInput = {
   channelTitle: string
   thumbnailUrl: string
   status?: $Enums.QueueItemStatus
+  position: number
   createdAt?: Date | string
   startedAt?: Date | string | null
   endedAt?: Date | string | null
@@ -326,6 +375,7 @@ export type QueueItemUncheckedCreateInput = {
   channelTitle: string
   thumbnailUrl: string
   status?: $Enums.QueueItemStatus
+  position: number
   createdAt?: Date | string
   startedAt?: Date | string | null
   endedAt?: Date | string | null
@@ -338,6 +388,7 @@ export type QueueItemUpdateInput = {
   channelTitle?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumQueueItemStatusFieldUpdateOperationsInput | $Enums.QueueItemStatus
+  position?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -354,6 +405,7 @@ export type QueueItemUncheckedUpdateInput = {
   channelTitle?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumQueueItemStatusFieldUpdateOperationsInput | $Enums.QueueItemStatus
+  position?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -368,6 +420,7 @@ export type QueueItemCreateManyInput = {
   channelTitle: string
   thumbnailUrl: string
   status?: $Enums.QueueItemStatus
+  position: number
   createdAt?: Date | string
   startedAt?: Date | string | null
   endedAt?: Date | string | null
@@ -380,6 +433,7 @@ export type QueueItemUpdateManyMutationInput = {
   channelTitle?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumQueueItemStatusFieldUpdateOperationsInput | $Enums.QueueItemStatus
+  position?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -394,6 +448,7 @@ export type QueueItemUncheckedUpdateManyInput = {
   channelTitle?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumQueueItemStatusFieldUpdateOperationsInput | $Enums.QueueItemStatus
+  position?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -418,9 +473,14 @@ export type QueueItemCountOrderByAggregateInput = {
   channelTitle?: Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  position?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   endedAt?: Prisma.SortOrder
+}
+
+export type QueueItemAvgOrderByAggregateInput = {
+  position?: Prisma.SortOrder
 }
 
 export type QueueItemMaxOrderByAggregateInput = {
@@ -432,6 +492,7 @@ export type QueueItemMaxOrderByAggregateInput = {
   channelTitle?: Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  position?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   endedAt?: Prisma.SortOrder
@@ -446,9 +507,14 @@ export type QueueItemMinOrderByAggregateInput = {
   channelTitle?: Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  position?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   startedAt?: Prisma.SortOrder
   endedAt?: Prisma.SortOrder
+}
+
+export type QueueItemSumOrderByAggregateInput = {
+  position?: Prisma.SortOrder
 }
 
 export type QueueItemCreateNestedManyWithoutRoomInput = {
@@ -539,6 +605,14 @@ export type EnumQueueItemStatusFieldUpdateOperationsInput = {
   set?: $Enums.QueueItemStatus
 }
 
+export type IntFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type QueueItemCreateWithoutRoomInput = {
   id?: string
   youtubeVideoId: string
@@ -546,6 +620,7 @@ export type QueueItemCreateWithoutRoomInput = {
   channelTitle: string
   thumbnailUrl: string
   status?: $Enums.QueueItemStatus
+  position: number
   createdAt?: Date | string
   startedAt?: Date | string | null
   endedAt?: Date | string | null
@@ -560,6 +635,7 @@ export type QueueItemUncheckedCreateWithoutRoomInput = {
   channelTitle: string
   thumbnailUrl: string
   status?: $Enums.QueueItemStatus
+  position: number
   createdAt?: Date | string
   startedAt?: Date | string | null
   endedAt?: Date | string | null
@@ -603,6 +679,7 @@ export type QueueItemScalarWhereInput = {
   channelTitle?: Prisma.StringFilter<"QueueItem"> | string
   thumbnailUrl?: Prisma.StringFilter<"QueueItem"> | string
   status?: Prisma.EnumQueueItemStatusFilter<"QueueItem"> | $Enums.QueueItemStatus
+  position?: Prisma.IntFilter<"QueueItem"> | number
   createdAt?: Prisma.DateTimeFilter<"QueueItem"> | Date | string
   startedAt?: Prisma.DateTimeNullableFilter<"QueueItem"> | Date | string | null
   endedAt?: Prisma.DateTimeNullableFilter<"QueueItem"> | Date | string | null
@@ -615,6 +692,7 @@ export type QueueItemCreateWithoutAddedByInput = {
   channelTitle: string
   thumbnailUrl: string
   status?: $Enums.QueueItemStatus
+  position: number
   createdAt?: Date | string
   startedAt?: Date | string | null
   endedAt?: Date | string | null
@@ -629,6 +707,7 @@ export type QueueItemUncheckedCreateWithoutAddedByInput = {
   channelTitle: string
   thumbnailUrl: string
   status?: $Enums.QueueItemStatus
+  position: number
   createdAt?: Date | string
   startedAt?: Date | string | null
   endedAt?: Date | string | null
@@ -668,6 +747,7 @@ export type QueueItemCreateManyRoomInput = {
   channelTitle: string
   thumbnailUrl: string
   status?: $Enums.QueueItemStatus
+  position: number
   createdAt?: Date | string
   startedAt?: Date | string | null
   endedAt?: Date | string | null
@@ -680,6 +760,7 @@ export type QueueItemUpdateWithoutRoomInput = {
   channelTitle?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumQueueItemStatusFieldUpdateOperationsInput | $Enums.QueueItemStatus
+  position?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -694,6 +775,7 @@ export type QueueItemUncheckedUpdateWithoutRoomInput = {
   channelTitle?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumQueueItemStatusFieldUpdateOperationsInput | $Enums.QueueItemStatus
+  position?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -707,6 +789,7 @@ export type QueueItemUncheckedUpdateManyWithoutRoomInput = {
   channelTitle?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumQueueItemStatusFieldUpdateOperationsInput | $Enums.QueueItemStatus
+  position?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -720,6 +803,7 @@ export type QueueItemCreateManyAddedByInput = {
   channelTitle: string
   thumbnailUrl: string
   status?: $Enums.QueueItemStatus
+  position: number
   createdAt?: Date | string
   startedAt?: Date | string | null
   endedAt?: Date | string | null
@@ -732,6 +816,7 @@ export type QueueItemUpdateWithoutAddedByInput = {
   channelTitle?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumQueueItemStatusFieldUpdateOperationsInput | $Enums.QueueItemStatus
+  position?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -746,6 +831,7 @@ export type QueueItemUncheckedUpdateWithoutAddedByInput = {
   channelTitle?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumQueueItemStatusFieldUpdateOperationsInput | $Enums.QueueItemStatus
+  position?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -759,6 +845,7 @@ export type QueueItemUncheckedUpdateManyWithoutAddedByInput = {
   channelTitle?: Prisma.StringFieldUpdateOperationsInput | string
   thumbnailUrl?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumQueueItemStatusFieldUpdateOperationsInput | $Enums.QueueItemStatus
+  position?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   endedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -775,6 +862,7 @@ export type QueueItemSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   channelTitle?: boolean
   thumbnailUrl?: boolean
   status?: boolean
+  position?: boolean
   createdAt?: boolean
   startedAt?: boolean
   endedAt?: boolean
@@ -791,6 +879,7 @@ export type QueueItemSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   channelTitle?: boolean
   thumbnailUrl?: boolean
   status?: boolean
+  position?: boolean
   createdAt?: boolean
   startedAt?: boolean
   endedAt?: boolean
@@ -807,6 +896,7 @@ export type QueueItemSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   channelTitle?: boolean
   thumbnailUrl?: boolean
   status?: boolean
+  position?: boolean
   createdAt?: boolean
   startedAt?: boolean
   endedAt?: boolean
@@ -823,12 +913,13 @@ export type QueueItemSelectScalar = {
   channelTitle?: boolean
   thumbnailUrl?: boolean
   status?: boolean
+  position?: boolean
   createdAt?: boolean
   startedAt?: boolean
   endedAt?: boolean
 }
 
-export type QueueItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "roomId" | "addedById" | "youtubeVideoId" | "title" | "channelTitle" | "thumbnailUrl" | "status" | "createdAt" | "startedAt" | "endedAt", ExtArgs["result"]["queueItem"]>
+export type QueueItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "roomId" | "addedById" | "youtubeVideoId" | "title" | "channelTitle" | "thumbnailUrl" | "status" | "position" | "createdAt" | "startedAt" | "endedAt", ExtArgs["result"]["queueItem"]>
 export type QueueItemInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   room?: boolean | Prisma.RoomDefaultArgs<ExtArgs>
   addedBy?: boolean | Prisma.RoomMemberDefaultArgs<ExtArgs>
@@ -857,6 +948,7 @@ export type $QueueItemPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     channelTitle: string
     thumbnailUrl: string
     status: $Enums.QueueItemStatus
+    position: number
     createdAt: Date
     startedAt: Date | null
     endedAt: Date | null
@@ -1293,6 +1385,7 @@ export interface QueueItemFieldRefs {
   readonly channelTitle: Prisma.FieldRef<"QueueItem", 'String'>
   readonly thumbnailUrl: Prisma.FieldRef<"QueueItem", 'String'>
   readonly status: Prisma.FieldRef<"QueueItem", 'QueueItemStatus'>
+  readonly position: Prisma.FieldRef<"QueueItem", 'Int'>
   readonly createdAt: Prisma.FieldRef<"QueueItem", 'DateTime'>
   readonly startedAt: Prisma.FieldRef<"QueueItem", 'DateTime'>
   readonly endedAt: Prisma.FieldRef<"QueueItem", 'DateTime'>

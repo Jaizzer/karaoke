@@ -139,7 +139,6 @@ export const RoomScalarFieldEnum = {
   code: 'code',
   name: 'name',
   hostId: 'hostId',
-  autoSelect: 'autoSelect',
   aiSearchEnabled: 'aiSearchEnabled',
   appendKaraoke: 'appendKaraoke',
   status: 'status',
@@ -154,6 +153,7 @@ export const RoomMemberScalarFieldEnum = {
   roomId: 'roomId',
   displayName: 'displayName',
   sessionToken: 'sessionToken',
+  isHost: 'isHost',
   createdAt: 'createdAt'
 } as const
 
@@ -169,6 +169,7 @@ export const QueueItemScalarFieldEnum = {
   channelTitle: 'channelTitle',
   thumbnailUrl: 'thumbnailUrl',
   status: 'status',
+  position: 'position',
   createdAt: 'createdAt',
   startedAt: 'startedAt',
   endedAt: 'endedAt'

@@ -29,6 +29,7 @@ export type RoomMemberMinAggregateOutputType = {
   roomId: string | null
   displayName: string | null
   sessionToken: string | null
+  isHost: boolean | null
   createdAt: Date | null
 }
 
@@ -37,6 +38,7 @@ export type RoomMemberMaxAggregateOutputType = {
   roomId: string | null
   displayName: string | null
   sessionToken: string | null
+  isHost: boolean | null
   createdAt: Date | null
 }
 
@@ -45,6 +47,7 @@ export type RoomMemberCountAggregateOutputType = {
   roomId: number
   displayName: number
   sessionToken: number
+  isHost: number
   createdAt: number
   _all: number
 }
@@ -55,6 +58,7 @@ export type RoomMemberMinAggregateInputType = {
   roomId?: true
   displayName?: true
   sessionToken?: true
+  isHost?: true
   createdAt?: true
 }
 
@@ -63,6 +67,7 @@ export type RoomMemberMaxAggregateInputType = {
   roomId?: true
   displayName?: true
   sessionToken?: true
+  isHost?: true
   createdAt?: true
 }
 
@@ -71,6 +76,7 @@ export type RoomMemberCountAggregateInputType = {
   roomId?: true
   displayName?: true
   sessionToken?: true
+  isHost?: true
   createdAt?: true
   _all?: true
 }
@@ -152,6 +158,7 @@ export type RoomMemberGroupByOutputType = {
   roomId: string
   displayName: string
   sessionToken: string
+  isHost: boolean
   createdAt: Date
   _count: RoomMemberCountAggregateOutputType | null
   _min: RoomMemberMinAggregateOutputType | null
@@ -181,6 +188,7 @@ export type RoomMemberWhereInput = {
   roomId?: Prisma.StringFilter<"RoomMember"> | string
   displayName?: Prisma.StringFilter<"RoomMember"> | string
   sessionToken?: Prisma.StringFilter<"RoomMember"> | string
+  isHost?: Prisma.BoolFilter<"RoomMember"> | boolean
   createdAt?: Prisma.DateTimeFilter<"RoomMember"> | Date | string
   room?: Prisma.XOR<Prisma.RoomScalarRelationFilter, Prisma.RoomWhereInput>
   queueItems?: Prisma.QueueItemListRelationFilter
@@ -191,6 +199,7 @@ export type RoomMemberOrderByWithRelationInput = {
   roomId?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   sessionToken?: Prisma.SortOrder
+  isHost?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   room?: Prisma.RoomOrderByWithRelationInput
   queueItems?: Prisma.QueueItemOrderByRelationAggregateInput
@@ -204,6 +213,7 @@ export type RoomMemberWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.RoomMemberWhereInput | Prisma.RoomMemberWhereInput[]
   roomId?: Prisma.StringFilter<"RoomMember"> | string
   displayName?: Prisma.StringFilter<"RoomMember"> | string
+  isHost?: Prisma.BoolFilter<"RoomMember"> | boolean
   createdAt?: Prisma.DateTimeFilter<"RoomMember"> | Date | string
   room?: Prisma.XOR<Prisma.RoomScalarRelationFilter, Prisma.RoomWhereInput>
   queueItems?: Prisma.QueueItemListRelationFilter
@@ -214,6 +224,7 @@ export type RoomMemberOrderByWithAggregationInput = {
   roomId?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   sessionToken?: Prisma.SortOrder
+  isHost?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.RoomMemberCountOrderByAggregateInput
   _max?: Prisma.RoomMemberMaxOrderByAggregateInput
@@ -228,6 +239,7 @@ export type RoomMemberScalarWhereWithAggregatesInput = {
   roomId?: Prisma.StringWithAggregatesFilter<"RoomMember"> | string
   displayName?: Prisma.StringWithAggregatesFilter<"RoomMember"> | string
   sessionToken?: Prisma.StringWithAggregatesFilter<"RoomMember"> | string
+  isHost?: Prisma.BoolWithAggregatesFilter<"RoomMember"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"RoomMember"> | Date | string
 }
 
@@ -235,6 +247,7 @@ export type RoomMemberCreateInput = {
   id?: string
   displayName: string
   sessionToken: string
+  isHost?: boolean
   createdAt?: Date | string
   room: Prisma.RoomCreateNestedOneWithoutMembersInput
   queueItems?: Prisma.QueueItemCreateNestedManyWithoutAddedByInput
@@ -245,6 +258,7 @@ export type RoomMemberUncheckedCreateInput = {
   roomId: string
   displayName: string
   sessionToken: string
+  isHost?: boolean
   createdAt?: Date | string
   queueItems?: Prisma.QueueItemUncheckedCreateNestedManyWithoutAddedByInput
 }
@@ -253,6 +267,7 @@ export type RoomMemberUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   sessionToken?: Prisma.StringFieldUpdateOperationsInput | string
+  isHost?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   room?: Prisma.RoomUpdateOneRequiredWithoutMembersNestedInput
   queueItems?: Prisma.QueueItemUpdateManyWithoutAddedByNestedInput
@@ -263,6 +278,7 @@ export type RoomMemberUncheckedUpdateInput = {
   roomId?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   sessionToken?: Prisma.StringFieldUpdateOperationsInput | string
+  isHost?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   queueItems?: Prisma.QueueItemUncheckedUpdateManyWithoutAddedByNestedInput
 }
@@ -272,6 +288,7 @@ export type RoomMemberCreateManyInput = {
   roomId: string
   displayName: string
   sessionToken: string
+  isHost?: boolean
   createdAt?: Date | string
 }
 
@@ -279,6 +296,7 @@ export type RoomMemberUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   sessionToken?: Prisma.StringFieldUpdateOperationsInput | string
+  isHost?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -287,6 +305,7 @@ export type RoomMemberUncheckedUpdateManyInput = {
   roomId?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   sessionToken?: Prisma.StringFieldUpdateOperationsInput | string
+  isHost?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -305,6 +324,7 @@ export type RoomMemberCountOrderByAggregateInput = {
   roomId?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   sessionToken?: Prisma.SortOrder
+  isHost?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -313,6 +333,7 @@ export type RoomMemberMaxOrderByAggregateInput = {
   roomId?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   sessionToken?: Prisma.SortOrder
+  isHost?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -321,6 +342,7 @@ export type RoomMemberMinOrderByAggregateInput = {
   roomId?: Prisma.SortOrder
   displayName?: Prisma.SortOrder
   sessionToken?: Prisma.SortOrder
+  isHost?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -389,6 +411,7 @@ export type RoomMemberCreateWithoutRoomInput = {
   id?: string
   displayName: string
   sessionToken: string
+  isHost?: boolean
   createdAt?: Date | string
   queueItems?: Prisma.QueueItemCreateNestedManyWithoutAddedByInput
 }
@@ -397,6 +420,7 @@ export type RoomMemberUncheckedCreateWithoutRoomInput = {
   id?: string
   displayName: string
   sessionToken: string
+  isHost?: boolean
   createdAt?: Date | string
   queueItems?: Prisma.QueueItemUncheckedCreateNestedManyWithoutAddedByInput
 }
@@ -435,6 +459,7 @@ export type RoomMemberScalarWhereInput = {
   roomId?: Prisma.StringFilter<"RoomMember"> | string
   displayName?: Prisma.StringFilter<"RoomMember"> | string
   sessionToken?: Prisma.StringFilter<"RoomMember"> | string
+  isHost?: Prisma.BoolFilter<"RoomMember"> | boolean
   createdAt?: Prisma.DateTimeFilter<"RoomMember"> | Date | string
 }
 
@@ -442,6 +467,7 @@ export type RoomMemberCreateWithoutQueueItemsInput = {
   id?: string
   displayName: string
   sessionToken: string
+  isHost?: boolean
   createdAt?: Date | string
   room: Prisma.RoomCreateNestedOneWithoutMembersInput
 }
@@ -451,6 +477,7 @@ export type RoomMemberUncheckedCreateWithoutQueueItemsInput = {
   roomId: string
   displayName: string
   sessionToken: string
+  isHost?: boolean
   createdAt?: Date | string
 }
 
@@ -474,6 +501,7 @@ export type RoomMemberUpdateWithoutQueueItemsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   sessionToken?: Prisma.StringFieldUpdateOperationsInput | string
+  isHost?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   room?: Prisma.RoomUpdateOneRequiredWithoutMembersNestedInput
 }
@@ -483,6 +511,7 @@ export type RoomMemberUncheckedUpdateWithoutQueueItemsInput = {
   roomId?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   sessionToken?: Prisma.StringFieldUpdateOperationsInput | string
+  isHost?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -490,6 +519,7 @@ export type RoomMemberCreateManyRoomInput = {
   id?: string
   displayName: string
   sessionToken: string
+  isHost?: boolean
   createdAt?: Date | string
 }
 
@@ -497,6 +527,7 @@ export type RoomMemberUpdateWithoutRoomInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   sessionToken?: Prisma.StringFieldUpdateOperationsInput | string
+  isHost?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   queueItems?: Prisma.QueueItemUpdateManyWithoutAddedByNestedInput
 }
@@ -505,6 +536,7 @@ export type RoomMemberUncheckedUpdateWithoutRoomInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   sessionToken?: Prisma.StringFieldUpdateOperationsInput | string
+  isHost?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   queueItems?: Prisma.QueueItemUncheckedUpdateManyWithoutAddedByNestedInput
 }
@@ -513,6 +545,7 @@ export type RoomMemberUncheckedUpdateManyWithoutRoomInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   displayName?: Prisma.StringFieldUpdateOperationsInput | string
   sessionToken?: Prisma.StringFieldUpdateOperationsInput | string
+  isHost?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -552,6 +585,7 @@ export type RoomMemberSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   roomId?: boolean
   displayName?: boolean
   sessionToken?: boolean
+  isHost?: boolean
   createdAt?: boolean
   room?: boolean | Prisma.RoomDefaultArgs<ExtArgs>
   queueItems?: boolean | Prisma.RoomMember$queueItemsArgs<ExtArgs>
@@ -563,6 +597,7 @@ export type RoomMemberSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   roomId?: boolean
   displayName?: boolean
   sessionToken?: boolean
+  isHost?: boolean
   createdAt?: boolean
   room?: boolean | Prisma.RoomDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["roomMember"]>
@@ -572,6 +607,7 @@ export type RoomMemberSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   roomId?: boolean
   displayName?: boolean
   sessionToken?: boolean
+  isHost?: boolean
   createdAt?: boolean
   room?: boolean | Prisma.RoomDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["roomMember"]>
@@ -581,10 +617,11 @@ export type RoomMemberSelectScalar = {
   roomId?: boolean
   displayName?: boolean
   sessionToken?: boolean
+  isHost?: boolean
   createdAt?: boolean
 }
 
-export type RoomMemberOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "roomId" | "displayName" | "sessionToken" | "createdAt", ExtArgs["result"]["roomMember"]>
+export type RoomMemberOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "roomId" | "displayName" | "sessionToken" | "isHost" | "createdAt", ExtArgs["result"]["roomMember"]>
 export type RoomMemberInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   room?: boolean | Prisma.RoomDefaultArgs<ExtArgs>
   queueItems?: boolean | Prisma.RoomMember$queueItemsArgs<ExtArgs>
@@ -608,6 +645,7 @@ export type $RoomMemberPayload<ExtArgs extends runtime.Types.Extensions.Internal
     roomId: string
     displayName: string
     sessionToken: string
+    isHost: boolean
     createdAt: Date
   }, ExtArgs["result"]["roomMember"]>
   composites: {}
@@ -1038,6 +1076,7 @@ export interface RoomMemberFieldRefs {
   readonly roomId: Prisma.FieldRef<"RoomMember", 'String'>
   readonly displayName: Prisma.FieldRef<"RoomMember", 'String'>
   readonly sessionToken: Prisma.FieldRef<"RoomMember", 'String'>
+  readonly isHost: Prisma.FieldRef<"RoomMember", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"RoomMember", 'DateTime'>
 }
     
