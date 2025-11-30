@@ -1,4 +1,5 @@
 // The guest's ongoing view of a room once joined; public route, gated by a locally-stored session token.
+import { useEffect, useState } from 'react';
 import { Navigate, useParams } from 'react-router';
 import { getRoomMemberSession } from '../lib/roomMemberStorage.ts';
 import { usePolling } from '../lib/usePolling.ts';
@@ -11,6 +12,10 @@ interface QueueResponse {
 	queueItems: QueueItem[];
 }
 
+interface Room {
+	aiSearchEnabled: boolean;
+}
+
 const POLL_INTERVAL_MS = 3000;
 
 export default function MemberRoomPage() {
@@ -21,6 +26,24 @@ export default function MemberRoomPage() {
 		session && code ? `/api/v1/rooms/${code}/queue` : null,
 		POLL_INTERVAL_MS,
 	);
+
+	// Fetched once, not polled — only used to decide whether to offer the
+	// "Use AI search" checkbox at all; the backend re-enforces this gate
+	// regardless, so a stale value here can't grant anything.
+	const [aiSearchEnabled, setAiSearchEnabled] = useState(false);
+	useEffect(() => {
+		if (!code) {
+			return;
+		}
+		apiFetch<{ room: Room }>(`/api/v1/rooms/${code}`)
+			.then(({ room }) => {
+				setAiSearchEnabled(room.aiSearchEnabled);
+			})
+			.catch(() => {
+				// Leave the checkbox hidden — same outcome as the host having
+				// disabled AI search.
+			});
+	}, [code]);
 
 	// No stored token for this code, either they never joined or they're on
 	// a different device. Either way, /join/:code is where to fix that.
@@ -58,6 +81,7 @@ export default function MemberRoomPage() {
 			<SongSearch
 				code={code}
 				sessionToken={memberSession.sessionToken}
+				aiSearchAvailable={aiSearchEnabled}
 				onQueued={refetch}
 			/>
 

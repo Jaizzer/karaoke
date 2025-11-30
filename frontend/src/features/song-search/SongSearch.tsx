@@ -1,7 +1,12 @@
-// The guest's search -> pick -> queue flow. When the room's autoSelect is
-// on, the backend returns a single best match and this queues it
-// immediately (no confirmation step — that's the point of auto-select);
-// when it's off, up to 5 candidates are shown for the guest to pick from.
+// The search -> pick -> queue flow, shared by both the host (cookie
+// session, no sessionToken prop) and a guest (bearer token). useAiSearch/
+// autoSelect are the searcher's own per-search choice, not room state —
+// aiSearchAvailable (from the room) only controls whether the "Use AI
+// search" checkbox is offered at all; the backend re-enforces that gate
+// regardless of what this sends. When useAiSearch+autoSelect both apply,
+// the backend returns a single best match and this queues it immediately
+// (no confirmation step — that's the point of auto-select); otherwise up
+// to 5 candidates are shown to pick from.
 import { useState } from 'react';
 import { apiFetch, ApiError } from '../../lib/api.ts';
 import Card from '../../components/Card.tsx';
@@ -23,16 +28,20 @@ interface SearchResponse {
 
 interface SongSearchProps {
 	code: string;
-	sessionToken: string;
+	sessionToken?: string;
+	aiSearchAvailable: boolean;
 	onQueued: () => void;
 }
 
 export default function SongSearch({
 	code,
 	sessionToken,
+	aiSearchAvailable,
 	onQueued,
 }: SongSearchProps) {
 	const [query, setQuery] = useState('');
+	const [useAiSearch, setUseAiSearch] = useState(false);
+	const [autoSelect, setAutoSelect] = useState(false);
 	const [results, setResults] = useState<SearchResult[] | null>(null);
 	const [status, setStatus] = useState<'idle' | 'searching' | 'queueing'>(
 		'idle',
@@ -40,10 +49,14 @@ export default function SongSearch({
 	const [error, setError] = useState<string | null>(null);
 	const [confirmation, setConfirmation] = useState<string | null>(null);
 
+	const authHeaders = sessionToken
+		? { Authorization: `Bearer ${sessionToken}` }
+		: undefined;
+
 	async function addToQueue(result: SearchResult) {
 		await apiFetch(`/api/v1/rooms/${code}/queue`, {
 			method: 'POST',
-			headers: { Authorization: `Bearer ${sessionToken}` },
+			headers: authHeaders,
 			body: JSON.stringify({
 				youtubeVideoId: result.videoId,
 				title: result.title,
@@ -65,8 +78,12 @@ export default function SongSearch({
 				`/api/v1/rooms/${code}/search`,
 				{
 					method: 'POST',
-					headers: { Authorization: `Bearer ${sessionToken}` },
-					body: JSON.stringify({ query }),
+					headers: authHeaders,
+					body: JSON.stringify({
+						query,
+						useAiSearch: aiSearchAvailable && useAiSearch,
+						autoSelect,
+					}),
 				},
 			);
 
@@ -131,6 +148,36 @@ export default function SongSearch({
 					{status === 'searching' ? 'Searching…' : 'Search'}
 				</Button>
 			</form>
+
+			{aiSearchAvailable && (
+				<div className='space-y-2'>
+					<label className='flex items-center gap-2 text-sm text-text-muted'>
+						<input
+							type='checkbox'
+							checked={useAiSearch}
+							onChange={(event) => {
+								setUseAiSearch(event.target.checked);
+								if (!event.target.checked) {
+									setAutoSelect(false);
+								}
+							}}
+						/>
+						Use AI search
+					</label>
+					{useAiSearch && (
+						<label className='ml-6 flex items-center gap-2 text-sm text-text-muted'>
+							<input
+								type='checkbox'
+								checked={autoSelect}
+								onChange={(event) => {
+									setAutoSelect(event.target.checked);
+								}}
+							/>
+							Auto-select the best match
+						</label>
+					)}
+				</div>
+			)}
 
 			{error && <p className='text-sm text-error'>{error}</p>}
 			{confirmation && (

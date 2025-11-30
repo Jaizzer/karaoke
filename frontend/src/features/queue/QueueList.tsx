@@ -18,10 +18,18 @@ interface RemoveControls {
 	onRemove: (item: QueueItem) => void;
 }
 
-interface FeaturedQueueCardProps extends RemoveControls {
+// Only HostDashboard passes this, so only the host sees reorder arrows; queue.service.ts 409s past either end.
+interface MoveControls {
+	onMove?: (item: QueueItem, direction: 'up' | 'down') => void;
+}
+
+interface FeaturedQueueCardProps extends RemoveControls, MoveControls {
 	item: QueueItem | undefined;
 	label: string;
 	actionLabel: string;
+	// NextUpCard is always the first QUEUED item, so it can only ever move down
+	// (into UpNextList); NowPlayingCard never reorders at all.
+	canMoveUp?: boolean;
 }
 
 // canRemove is ownership-only, not status-aware, so the same predicate gates removing and stopping a song.
@@ -31,6 +39,8 @@ function FeaturedQueueCard({
 	actionLabel,
 	canRemove,
 	onRemove,
+	onMove,
+	canMoveUp = false,
 }: FeaturedQueueCardProps) {
 	if (!item) {
 		return null;
@@ -54,6 +64,32 @@ function FeaturedQueueCard({
 					{item.channelTitle}
 				</p>
 			</div>
+			{onMove && (
+				<div className='flex flex-col gap-1'>
+					{canMoveUp && (
+						<button
+							type='button'
+							aria-label='Move up'
+							onClick={() => {
+								onMove(item, 'up');
+							}}
+							className='text-text-muted hover:text-text'
+						>
+							▲
+						</button>
+					)}
+					<button
+						type='button'
+						aria-label='Move down'
+						onClick={() => {
+							onMove(item, 'down');
+						}}
+						className='text-text-muted hover:text-text'
+					>
+						▼
+					</button>
+				</div>
+			)}
 			{canRemove(item) && (
 				<Button
 					type='button'
@@ -70,7 +106,7 @@ function FeaturedQueueCard({
 	);
 }
 
-interface SingleItemCardProps extends RemoveControls {
+interface SingleItemCardProps extends RemoveControls, MoveControls {
 	item: QueueItem | undefined;
 }
 
@@ -80,18 +116,28 @@ export function NowPlayingCard(props: SingleItemCardProps) {
 	);
 }
 
-export function NextUpCard(props: SingleItemCardProps) {
+export function NextUpCard({ onMove, ...props }: SingleItemCardProps) {
 	return (
-		<FeaturedQueueCard {...props} label='Up next' actionLabel='Remove' />
+		<FeaturedQueueCard
+			{...props}
+			label='Up next'
+			actionLabel='Remove'
+			onMove={onMove}
+		/>
 	);
 }
 
-interface UpNextListProps extends RemoveControls {
+interface UpNextListProps extends RemoveControls, MoveControls {
 	items: QueueItem[];
 }
 
 // Height-capped and scrollable since a queue can get long; holds everything beyond the one song in NextUpCard.
-export function UpNextList({ items, canRemove, onRemove }: UpNextListProps) {
+export function UpNextList({
+	items,
+	canRemove,
+	onRemove,
+	onMove,
+}: UpNextListProps) {
 	if (items.length === 0) {
 		return <p className='text-sm text-text-muted'>Nothing queued yet.</p>;
 	}
@@ -114,6 +160,30 @@ export function UpNextList({ items, canRemove, onRemove }: UpNextListProps) {
 								{item.channelTitle}
 							</p>
 						</div>
+						{onMove && (
+							<div className='flex flex-col gap-1'>
+								<button
+									type='button'
+									aria-label='Move up'
+									onClick={() => {
+										onMove(item, 'up');
+									}}
+									className='text-text-muted hover:text-text'
+								>
+									▲
+								</button>
+								<button
+									type='button'
+									aria-label='Move down'
+									onClick={() => {
+										onMove(item, 'down');
+									}}
+									className='text-text-muted hover:text-text'
+								>
+									▼
+								</button>
+							</div>
+						)}
 						{canRemove(item) && (
 							<Button
 								type='button'

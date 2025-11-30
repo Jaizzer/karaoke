@@ -16,11 +16,13 @@ import {
 	type QueueItem,
 } from '../queue/QueueList.tsx';
 import YoutubePlayer from '../playback/YoutubePlayer.tsx';
+import SongSearch from '../song-search/SongSearch.tsx';
 
 interface Room {
 	code: string;
 	name: string | null;
-	autoSelect: boolean;
+	aiSearchEnabled: boolean;
+	appendKaraoke: boolean;
 	status: 'OPEN' | 'CLOSED';
 }
 
@@ -129,8 +131,26 @@ export default function HostDashboard() {
 		refetchQueue();
 	}
 
+	async function handleMove(item: QueueItem, direction: 'up' | 'down') {
+		if (!code) {
+			return;
+		}
+		try {
+			await apiFetch(`/api/v1/rooms/${code}/queue/${item.id}/move`, {
+				method: 'POST',
+				body: JSON.stringify({ direction }),
+			});
+			refetchQueue();
+		} catch {
+			// 409 at either end of the queue, nothing to swap with and nothing to
+			// show for it.
+		}
+	}
+
 	async function updateRoom(
-		data: Partial<Pick<Room, 'autoSelect' | 'status'>>,
+		data: Partial<
+			Pick<Room, 'aiSearchEnabled' | 'appendKaraoke' | 'status'>
+		>,
 	) {
 		if (!room) {
 			return;
@@ -191,10 +211,17 @@ export default function HostDashboard() {
 				Share Karaoke
 			</button>
 
+			<SongSearch
+				code={room.code}
+				aiSearchAvailable={room.aiSearchEnabled}
+				onQueued={refetchQueue}
+			/>
+
 			<NextUpCard
 				item={nextQueued}
 				canRemove={() => true}
 				onRemove={(item) => void handleRemove(item)}
+				onMove={(item, direction) => void handleMove(item, direction)}
 			/>
 
 			<YoutubePlayer
@@ -265,11 +292,12 @@ export default function HostDashboard() {
 				<div className='flex items-center justify-between gap-4'>
 					<div>
 						<h3 className='text-sm font-semibold text-text'>
-							Auto-select
+							Enable AI search
 						</h3>
 						<p className='text-sm text-text-muted'>
-							Let AI pick the best match instead of showing guests
-							a top-5 to choose from.
+							Rank/filter results with an LLM. Turn off to use
+							YouTube&apos;s own results directly — faster, no AI
+							dependency.
 						</p>
 					</div>
 					<Button
@@ -277,10 +305,37 @@ export default function HostDashboard() {
 						variant='ghost'
 						disabled={saving || room.status === 'CLOSED'}
 						onClick={() =>
-							void updateRoom({ autoSelect: !room.autoSelect })
+							void updateRoom({
+								aiSearchEnabled: !room.aiSearchEnabled,
+							})
 						}
 					>
-						{room.autoSelect ? 'On' : 'Off'}
+						{room.aiSearchEnabled ? 'On' : 'Off'}
+					</Button>
+				</div>
+
+				<div className='flex items-center justify-between gap-4'>
+					<div>
+						<h3 className='text-sm font-semibold text-text'>
+							Append &quot;karaoke&quot;
+						</h3>
+						<p className='text-sm text-text-muted'>
+							Bias every search toward singable
+							karaoke/instrumental versions instead of original
+							recordings.
+						</p>
+					</div>
+					<Button
+						type='button'
+						variant='ghost'
+						disabled={saving || room.status === 'CLOSED'}
+						onClick={() =>
+							void updateRoom({
+								appendKaraoke: !room.appendKaraoke,
+							})
+						}
+					>
+						{room.appendKaraoke ? 'On' : 'Off'}
 					</Button>
 				</div>
 
@@ -307,6 +362,9 @@ export default function HostDashboard() {
 						items={restOfQueue}
 						canRemove={() => true}
 						onRemove={(item) => void handleRemove(item)}
+						onMove={(item, direction) =>
+							void handleMove(item, direction)
+						}
 					/>
 				</div>
 			)}
