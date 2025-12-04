@@ -32,7 +32,15 @@ describe('/api/v1/rooms/:code/join', () => {
 		await prisma.$disconnect();
 	});
 
+	// A host can only have one OPEN room (rooms.handler.ts), so this closes whatever's already open first.
 	async function createRoom() {
+		const mine = await hostAgent.get('/api/v1/rooms/mine');
+		const existing = (mine.body as { room: { code: string } | null }).room;
+		if (existing) {
+			await hostAgent
+				.patch(`/api/v1/rooms/${existing.code}`)
+				.send({ status: 'CLOSED' });
+		}
 		const response = await hostAgent.post('/api/v1/rooms').send({});
 		return (response.body as RoomResponseBody).room;
 	}

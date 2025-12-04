@@ -73,7 +73,15 @@ describe('/api/v1/rooms/:code/search', () => {
 		rankCandidates.mockReset();
 	});
 
+	// A host can only have one OPEN room (rooms.handler.ts), so this closes whatever's already open first.
 	async function createRoom() {
+		const mine = await hostAgent.get('/api/v1/rooms/mine');
+		const existing = (mine.body as { room: { code: string } | null }).room;
+		if (existing) {
+			await hostAgent
+				.patch(`/api/v1/rooms/${existing.code}`)
+				.send({ status: 'CLOSED' });
+		}
 		const response = await hostAgent.post('/api/v1/rooms').send({});
 		return (response.body as RoomResponseBody).room;
 	}
@@ -103,8 +111,19 @@ describe('/api/v1/rooms/:code/search', () => {
 	});
 
 	test('rejects a token from a different room', async () => {
+		// Needs two rooms open at once; a second host sidesteps the one-open-room-per-host limit.
 		const roomA = await createRoom();
-		const roomB = await createRoom();
+		const otherHostAgent = request.agent(app);
+		const otherEmail = `test-${randomUUID()}@example.com`;
+		const otherSignUp = await otherHostAgent
+			.post('/api/v1/authentication/sign-up/email')
+			.send({ email: otherEmail, password, name: 'Other Host' });
+		const otherId = (otherSignUp.body as { user: { id: string } }).user.id;
+		const roomBResponse = await otherHostAgent
+			.post('/api/v1/rooms')
+			.send({});
+		const roomB = (roomBResponse.body as RoomResponseBody).room;
+
 		const tokenForA = await joinRoom(roomA.code);
 
 		const response = await request(app)
@@ -112,6 +131,8 @@ describe('/api/v1/rooms/:code/search', () => {
 			.set('Authorization', `Bearer ${tokenForA}`)
 			.send({ query: 'test' });
 		expect(response.status).toBe(403);
+
+		await prisma.user.delete({ where: { id: otherId } });
 	});
 
 	test('rejects a search in a closed room', async () => {

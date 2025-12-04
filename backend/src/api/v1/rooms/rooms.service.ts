@@ -27,6 +27,11 @@ async function generateUniqueCode(): Promise<string> {
 	throw new Error('Failed to generate a unique room code after 5 attempts.');
 }
 
+// A host runs one room at a time (rooms.handler.ts enforces this), so there's no ambiguity here.
+export async function findOpenRoomByHost(hostId: string) {
+	return prisma.room.findFirst({ where: { hostId, status: 'OPEN' } });
+}
+
 // Also creates a host RoomMember row, so a host-added queue item reuses the same addedById as a guest's.
 export async function createRoom(
 	hostId: string,

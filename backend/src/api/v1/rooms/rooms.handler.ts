@@ -1,11 +1,20 @@
 import type { Request, Response } from 'express';
 import { CreateRoomSchema, UpdateRoomSchema } from '../../../lib/validators.ts';
 import resolveRoom from '../../../lib/resolveRoom.ts';
-import { createRoom, updateRoom } from './rooms.service.ts';
+import { createRoom, updateRoom, findOpenRoomByHost } from './rooms.service.ts';
 
 export async function postRoom(req: Request, res: Response) {
 	if (!req.user) {
 		res.status(401).json({ message: 'Not signed in.' });
+		return;
+	}
+
+	const existing = await findOpenRoomByHost(req.user.id);
+	if (existing) {
+		res.status(409).json({
+			message: 'Close your current room before starting a new one.',
+			room: existing,
+		});
 		return;
 	}
 
@@ -21,6 +30,17 @@ export async function postRoom(req: Request, res: Response) {
 		parsedBody.data.name,
 	);
 	res.status(201).json({ room });
+}
+
+// Lets the frontend decide whether to show "Host a room" or a link to the host's already-open room.
+export async function getMyRoom(req: Request, res: Response) {
+	if (!req.user) {
+		res.status(401).json({ message: 'Not signed in.' });
+		return;
+	}
+
+	const room = await findOpenRoomByHost(req.user.id);
+	res.status(200).json({ room });
 }
 
 // Unauthenticated on purpose: a room's code/status aren't sensitive and guests need this before joining.

@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import getRoomByCode from '../services/getRoomByCode.ts';
+import closeStaleRoom from '../services/closeStaleRoom.ts';
 
 // Shared by every room-scoped handler; resolves :code to a Room or writes its own 400/404 and returns undefined.
 export default async function resolveRoom(req: Request, res: Response) {
@@ -16,5 +17,6 @@ export default async function resolveRoom(req: Request, res: Response) {
 		return undefined;
 	}
 
-	return room;
+	// Every read through here doubles as the lazy 24h-abandoned-room sweep, so active rooms never actually go stale.
+	return closeStaleRoom(room);
 }
