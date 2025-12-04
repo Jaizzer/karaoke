@@ -27,3 +27,37 @@ body {
 	background-color: var(--color-bg);
 	color: var(--color-text);
 }
+
+/* A light travelling around the AI button's border while AI search is on
+   (SongSearch.tsx) — two stacked backgrounds (the standard rotating-
+   gradient-border technique): a solid one clipped to the padding box
+   (the button's face) and a spinning conic-gradient clipped to the
+   border box, so only the 1px border ring itself ever shows the moving
+   light — nothing behind or under the button. */
+@property --ai-glow-angle {
+	syntax: '<angle>';
+	initial-value: 0deg;
+	inherits: false;
+}
+
+@keyframes ai-glow-spin {
+	to {
+		--ai-glow-angle: 360deg;
+	}
+}
+
+.ai-glow {
+	border: 1px solid transparent;
+	background-image:
+		linear-gradient(var(--color-surface), var(--color-surface)),
+		conic-gradient(
+			from var(--ai-glow-angle),
+			var(--color-border) 0%,
+			var(--color-accent) 8%,
+			var(--color-border) 20%,
+			var(--color-border) 100%
+		);
+	background-origin: border-box;
+	background-clip: padding-box, border-box;
+	animation: ai-glow-spin 2.5s linear infinite;
+}

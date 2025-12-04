@@ -58,7 +58,9 @@ test('host creates a room; a guest joins, queues songs, and the host auto-advanc
 	await guestPage
 		.getByPlaceholder('Song title, artist, or lyrics')
 		.fill('test song');
-	await guestPage.getByRole('button', { name: 'Search' }).click();
+	await guestPage
+		.getByRole('button', { name: 'Search', exact: true })
+		.click();
 	const searchUnavailable = guestPage.getByText(
 		'Search is not available right now.',
 	);

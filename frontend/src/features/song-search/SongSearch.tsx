@@ -1,17 +1,17 @@
-// The search -> pick -> queue flow, shared by both the host (cookie
-// session, no sessionToken prop) and a guest (bearer token). useAiSearch/
-// autoSelect are the searcher's own per-search choice, not room state —
-// aiSearchAvailable (from the room) only controls whether the "Use AI
-// search" checkbox is offered at all; the backend re-enforces that gate
-// regardless of what this sends. When useAiSearch+autoSelect both apply,
-// the backend returns a single best match and this queues it immediately
-// (no confirmation step — that's the point of auto-select); otherwise up
-// to 5 candidates are shown to pick from.
-import { useState } from 'react';
+// Search -> pick -> queue flow, shared by the host (cookie session) and a guest (bearer token). useAiSearch/
+// autoSelect are the searcher's own choice; a single best match queues immediately, otherwise up to 5 candidates float below the search bar.
+import { useEffect, useRef, useState } from 'react';
 import { apiFetch, ApiError } from '../../lib/api.ts';
+import {
+	getAiSearchPreferences,
+	setAiSearchPreferences,
+} from '../../lib/aiSearchPreferences.ts';
 import Card from '../../components/Card.tsx';
 import Input from '../../components/Input.tsx';
 import Button from '../../components/Button.tsx';
+import Switch from '../../components/Switch.tsx';
+import Overlay from '../../components/Overlay.tsx';
+import Toast from '../../components/Toast.tsx';
 
 export interface SearchResult {
 	videoId: string;
@@ -40,14 +40,50 @@ export default function SongSearch({
 	onQueued,
 }: SongSearchProps) {
 	const [query, setQuery] = useState('');
-	const [useAiSearch, setUseAiSearch] = useState(false);
-	const [autoSelect, setAutoSelect] = useState(false);
+	const [useAiSearch, setUseAiSearch] = useState(
+		() => getAiSearchPreferences().useAiSearch,
+	);
+	const [autoSelect, setAutoSelect] = useState(
+		() => getAiSearchPreferences().autoSelect,
+	);
+	const [showAiCard, setShowAiCard] = useState(false);
+
+	useEffect(() => {
+		setAiSearchPreferences({ useAiSearch, autoSelect });
+	}, [useAiSearch, autoSelect]);
 	const [results, setResults] = useState<SearchResult[] | null>(null);
 	const [status, setStatus] = useState<'idle' | 'searching' | 'queueing'>(
 		'idle',
 	);
 	const [error, setError] = useState<string | null>(null);
 	const [confirmation, setConfirmation] = useState<string | null>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	// The results dropdown floats over the page; without this listener it'd sit open forever, blocking clicks underneath.
+	useEffect(() => {
+		if (!results) {
+			return;
+		}
+		function handlePointerDown(event: MouseEvent) {
+			if (
+				containerRef.current &&
+				!containerRef.current.contains(event.target as Node)
+			) {
+				setResults(null);
+			}
+		}
+		function handleKeyDown(event: KeyboardEvent) {
+			if (event.key === 'Escape') {
+				setResults(null);
+			}
+		}
+		document.addEventListener('mousedown', handlePointerDown);
+		window.addEventListener('keydown', handleKeyDown);
+		return () => {
+			document.removeEventListener('mousedown', handlePointerDown);
+			window.removeEventListener('keydown', handleKeyDown);
+		};
+	}, [results]);
 
 	const authHeaders = sessionToken
 		? { Authorization: `Bearer ${sessionToken}` }
@@ -129,7 +165,7 @@ export default function SongSearch({
 	}
 
 	return (
-		<Card className='space-y-4 p-4'>
+		<Card ref={containerRef} className='relative space-y-3 p-4'>
 			<form
 				onSubmit={(event) => void handleSubmit(event)}
 				className='flex gap-2'
@@ -141,6 +177,29 @@ export default function SongSearch({
 					required
 					className='flex-1'
 				/>
+				<button
+					type='button'
+					aria-label='AI search settings'
+					disabled={!aiSearchAvailable}
+					onClick={() => {
+						setShowAiCard(true);
+					}}
+					className={`flex shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:border disabled:border-border disabled:bg-transparent disabled:text-text-muted disabled:opacity-40 ${
+						useAiSearch && aiSearchAvailable
+							? 'ai-glow text-accent'
+							: 'border border-border bg-surface text-text-muted hover:border-accent hover:text-text'
+					}`}
+				>
+					<svg
+						viewBox='0 0 24 24'
+						fill='currentColor'
+						className='h-4 w-4'
+					>
+						<path d='M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2z' />
+						<path d='M19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9L19 14z' />
+					</svg>
+					AI
+				</button>
 				<Button
 					type='submit'
 					disabled={status === 'searching' || status === 'queueing'}
@@ -149,43 +208,20 @@ export default function SongSearch({
 				</Button>
 			</form>
 
-			{aiSearchAvailable && (
-				<div className='space-y-2'>
-					<label className='flex items-center gap-2 text-sm text-text-muted'>
-						<input
-							type='checkbox'
-							checked={useAiSearch}
-							onChange={(event) => {
-								setUseAiSearch(event.target.checked);
-								if (!event.target.checked) {
-									setAutoSelect(false);
-								}
-							}}
-						/>
-						Use AI search
-					</label>
-					{useAiSearch && (
-						<label className='ml-6 flex items-center gap-2 text-sm text-text-muted'>
-							<input
-								type='checkbox'
-								checked={autoSelect}
-								onChange={(event) => {
-									setAutoSelect(event.target.checked);
-								}}
-							/>
-							Auto-select the best match
-						</label>
-					)}
-				</div>
-			)}
-
 			{error && <p className='text-sm text-error'>{error}</p>}
 			{confirmation && (
-				<p className='text-sm text-success'>{confirmation}</p>
+				<Toast
+					message={confirmation}
+					onDismiss={() => {
+						setConfirmation(null);
+					}}
+				/>
 			)}
 
+			{/* floats over whatever's below instead of pushing it down, absolutely
+			positioned against the Card's own relative frame. */}
 			{results && (
-				<ul className='space-y-2'>
+				<ul className='absolute top-full right-0 left-0 z-40 mt-1 max-h-80 space-y-2 overflow-y-auto rounded-lg border-2 border-accent bg-surface-hover p-2 shadow-xl'>
 					{results.map((result) => (
 						<li key={result.videoId}>
 							<button
@@ -211,6 +247,39 @@ export default function SongSearch({
 						</li>
 					))}
 				</ul>
+			)}
+
+			{showAiCard && (
+				<Overlay
+					onClose={() => {
+						setShowAiCard(false);
+					}}
+				>
+					<h2 className='text-lg font-bold text-text'>AI search</h2>
+
+					<Switch
+						label='Use AI search'
+						description="Rank/filter results with an LLM instead of using YouTube's own order."
+						checked={useAiSearch}
+						onChange={(checked) => {
+							setUseAiSearch(checked);
+							if (!checked) {
+								setAutoSelect(false);
+							}
+						}}
+					/>
+
+					{useAiSearch && (
+						<Switch
+							label='Auto-select the best match'
+							description='Skip the picker — queue the single best match automatically.'
+							checked={autoSelect}
+							onChange={(checked) => {
+								setAutoSelect(checked);
+							}}
+						/>
+					)}
+				</Overlay>
 			)}
 		</Card>
 	);
