@@ -1,14 +1,14 @@
-// The host's control panel for a single room: QR/code to join, auto-select
-// toggle, close-room control, the live queue, and playback — polls the
-// queue and auto-advances to the next song whenever nothing is playing.
-import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router';
+// The host's control panel: QR/code, settings, the live queue, and playback.
+// Polls the queue and auto-advances whenever nothing's playing.
+import { useRef, useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router';
 import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch, ApiError } from '../../lib/api.ts';
 import { usePolling } from '../../lib/usePolling.ts';
-import Card from '../../components/Card.tsx';
 import Badge from '../../components/Badge.tsx';
 import Button from '../../components/Button.tsx';
+import Switch from '../../components/Switch.tsx';
+import Overlay from '../../components/Overlay.tsx';
 import {
 	NowPlayingCard,
 	NextUpCard,
@@ -34,10 +34,12 @@ const POLL_INTERVAL_MS = 3000;
 
 export default function HostDashboard() {
 	const { code } = useParams<{ code: string }>();
-	const [room, setRoom] = useState<Room | null>(null);
+	const navigate = useNavigate();
 	const [error, setError] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
 	const [showRoomCode, setShowRoomCode] = useState(false);
+	const [showSettings, setShowSettings] = useState(false);
+	const [linkCopied, setLinkCopied] = useState(false);
 
 	const { data: queueData, refetch: refetchQueue } =
 		usePolling<QueueResponse>(
@@ -50,37 +52,17 @@ export default function HostDashboard() {
 	const nextQueued = upNext[0];
 	const restOfQueue = upNext.slice(1);
 
-	useEffect(() => {
-		if (!showRoomCode) {
-			return;
-		}
-		function handleKeyDown(event: KeyboardEvent) {
-			if (event.key === 'Escape') {
-				setShowRoomCode(false);
-			}
-		}
-		window.addEventListener('keydown', handleKeyDown);
-		return () => {
-			window.removeEventListener('keydown', handleKeyDown);
-		};
-	}, [showRoomCode]);
+	// Polled, not fetched once, so a stale dashboard (closed elsewhere, or auto-expired) leaves instead of lingering.
+	const { data: roomData, refetch: refetchRoom } = usePolling<{
+		room: Room;
+	}>(code ? `/api/v1/rooms/${code}` : null, POLL_INTERVAL_MS);
+	const room = roomData?.room ?? null;
 
 	useEffect(() => {
-		if (!code) {
-			return;
+		if (room?.status === 'CLOSED') {
+			navigate('/');
 		}
-		apiFetch<{ room: Room }>(`/api/v1/rooms/${code}`)
-			.then(({ room }) => {
-				setRoom(room);
-			})
-			.catch((caught: unknown) => {
-				setError(
-					caught instanceof ApiError
-						? caught.message
-						: 'Something went wrong.',
-				);
-			});
-	}, [code]);
+	}, [room, navigate]);
 
 	// auto-advance: whenever nothing is playing but something is queued, start
 	// it. guarded by a ref (not state) so an in-flight POST can't double-fire if
@@ -162,7 +144,12 @@ export default function HostDashboard() {
 				`/api/v1/rooms/${room.code}`,
 				{ method: 'PATCH', body: JSON.stringify(data) },
 			);
-			setRoom(updated);
+			if (updated.status === 'CLOSED') {
+				// Nothing left to manage here, so send the host home immediately instead of waiting for the next poll.
+				navigate('/');
+				return;
+			}
+			refetchRoom();
 		} catch (caught) {
 			setError(
 				caught instanceof ApiError
@@ -174,7 +161,8 @@ export default function HostDashboard() {
 		}
 	}
 
-	if (!room) {
+	// Covers both "still loading" and "closed, about to redirect" so the dashboard doesn't flash first.
+	if (!room || room.status === 'CLOSED') {
 		return (
 			<p className='py-6 text-sm text-text-muted'>
 				{error ?? 'Loading…'}
@@ -184,32 +172,83 @@ export default function HostDashboard() {
 
 	const joinUrl = `${window.location.origin}/join/${room.code}`;
 
+	async function handleCopyJoinUrl() {
+		try {
+			await navigator.clipboard.writeText(joinUrl);
+			setLinkCopied(true);
+			setTimeout(() => {
+				setLinkCopied(false);
+			}, 2000);
+		} catch {
+			// clipboard permission denied or unavailable, the URL is still right
+			// there in the card to select and copy by hand.
+		}
+	}
+
 	return (
 		<div className='space-y-6 py-6'>
-			<button
-				type='button'
-				onClick={() => {
-					setShowRoomCode(true);
-				}}
-				className='flex items-center gap-2 rounded-full border border-border bg-transparent px-3 py-2 text-xs font-semibold text-text-muted transition-colors hover:border-accent hover:text-text'
-			>
-				<svg
-					viewBox='0 0 24 24'
-					fill='none'
-					stroke='currentColor'
-					strokeWidth='2'
-					strokeLinecap='round'
-					strokeLinejoin='round'
-					className='h-4 w-4'
-				>
-					<circle cx='18' cy='5' r='3' />
-					<circle cx='6' cy='12' r='3' />
-					<circle cx='18' cy='19' r='3' />
-					<line x1='8.6' y1='10.5' x2='15.4' y2='6.5' />
-					<line x1='8.6' y1='13.5' x2='15.4' y2='17.5' />
-				</svg>
-				Share Karaoke
-			</button>
+			<div className='flex items-center justify-between gap-2'>
+				<div className='flex items-center gap-2'>
+					<button
+						type='button'
+						onClick={() => {
+							setShowRoomCode(true);
+						}}
+						className='flex items-center gap-2 rounded-full border border-border bg-transparent px-3 py-2 text-xs font-semibold text-text-muted transition-colors hover:border-accent hover:text-text'
+					>
+						<svg
+							viewBox='0 0 24 24'
+							fill='none'
+							stroke='currentColor'
+							strokeWidth='2'
+							strokeLinecap='round'
+							strokeLinejoin='round'
+							className='h-4 w-4'
+						>
+							<circle cx='18' cy='5' r='3' />
+							<circle cx='6' cy='12' r='3' />
+							<circle cx='18' cy='19' r='3' />
+							<line x1='8.6' y1='10.5' x2='15.4' y2='6.5' />
+							<line x1='8.6' y1='13.5' x2='15.4' y2='17.5' />
+						</svg>
+						Share Karaoke
+					</button>
+
+					<button
+						type='button'
+						onClick={() => {
+							setShowSettings(true);
+						}}
+						aria-label='Settings'
+						className='flex items-center gap-2 rounded-full border border-border bg-transparent px-3 py-2 text-xs font-semibold text-text-muted transition-colors hover:border-accent hover:text-text'
+					>
+						<svg
+							viewBox='0 0 24 24'
+							fill='none'
+							stroke='currentColor'
+							strokeWidth='2'
+							strokeLinecap='round'
+							strokeLinejoin='round'
+							className='h-4 w-4'
+						>
+							<circle cx='12' cy='12' r='3' />
+							<path d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z' />
+						</svg>
+						Settings
+					</button>
+				</div>
+
+				{room.status === 'OPEN' && (
+					<Button
+						type='button'
+						variant='ghost'
+						disabled={saving}
+						onClick={() => void updateRoom({ status: 'CLOSED' })}
+					>
+						Close room
+					</Button>
+				)}
+			</div>
 
 			<SongSearch
 				code={room.code}
@@ -236,122 +275,77 @@ export default function HostDashboard() {
 			/>
 
 			{showRoomCode && (
-				<div
-					className='fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm'
-					onClick={() => {
+				<Overlay
+					onClose={() => {
 						setShowRoomCode(false);
 					}}
 				>
-					<Card
-						className='w-full max-w-sm space-y-4 p-6 text-center'
-						onClick={(event) => {
-							event.stopPropagation();
-						}}
-					>
-						<div className='flex items-center justify-center gap-2'>
-							<h2 className='text-xl font-bold text-text'>
-								{room.name ?? `Room ${room.code}`}
-							</h2>
-							<Badge
-								tone={
-									room.status === 'OPEN'
-										? 'success'
-										: 'default'
-								}
-							>
-								{room.status}
-							</Badge>
-						</div>
-
-						<p className='font-mono text-4xl font-bold tracking-widest text-text'>
-							{room.code}
-						</p>
-						<div className='flex justify-center rounded-md bg-white p-4'>
-							<QRCodeSVG value={joinUrl} size={200} />
-						</div>
-						<p className='text-sm text-text-muted'>
-							Scan to join, or go to{' '}
-							<span className='font-mono text-text'>
-								{joinUrl}
-							</span>
-						</p>
-						<Button
-							type='button'
-							variant='ghost'
-							onClick={() => {
-								setShowRoomCode(false);
-							}}
+					<div className='flex items-center justify-center gap-2'>
+						<h2 className='text-xl font-bold text-text'>
+							{room.name ?? `Room ${room.code}`}
+						</h2>
+						<Badge
+							tone={
+								room.status === 'OPEN' ? 'success' : 'default'
+							}
 						>
-							Close
-						</Button>
-					</Card>
-				</div>
+							{room.status}
+						</Badge>
+					</div>
+
+					<p className='font-mono text-4xl font-bold tracking-widest text-text'>
+						{room.code}
+					</p>
+					<div className='flex justify-center rounded-md bg-white p-4'>
+						<QRCodeSVG value={joinUrl} size={200} />
+					</div>
+					<p className='text-sm text-text-muted'>
+						Scan to join, or go to{' '}
+						<span className='font-mono text-text'>{joinUrl}</span>
+					</p>
+					<Button
+						type='button'
+						variant='ghost'
+						onClick={() => void handleCopyJoinUrl()}
+					>
+						{linkCopied ? 'Copied!' : 'Copy link'}
+					</Button>
+				</Overlay>
 			)}
 
-			<Card className='space-y-4 p-6'>
-				<div className='flex items-center justify-between gap-4'>
-					<div>
-						<h3 className='text-sm font-semibold text-text'>
-							Enable AI search
-						</h3>
-						<p className='text-sm text-text-muted'>
-							Rank/filter results with an LLM. Turn off to use
-							YouTube&apos;s own results directly — faster, no AI
-							dependency.
-						</p>
-					</div>
-					<Button
-						type='button'
-						variant='ghost'
-						disabled={saving || room.status === 'CLOSED'}
-						onClick={() =>
-							void updateRoom({
-								aiSearchEnabled: !room.aiSearchEnabled,
-							})
-						}
-					>
-						{room.aiSearchEnabled ? 'On' : 'Off'}
-					</Button>
-				</div>
+			{showSettings && (
+				<Overlay
+					onClose={() => {
+						setShowSettings(false);
+					}}
+				>
+					<h2 className='text-lg font-bold text-text'>
+						Room settings
+					</h2>
 
-				<div className='flex items-center justify-between gap-4'>
-					<div>
-						<h3 className='text-sm font-semibold text-text'>
-							Append &quot;karaoke&quot;
-						</h3>
-						<p className='text-sm text-text-muted'>
-							Bias every search toward singable
-							karaoke/instrumental versions instead of original
-							recordings.
-						</p>
-					</div>
-					<Button
-						type='button'
-						variant='ghost'
-						disabled={saving || room.status === 'CLOSED'}
-						onClick={() =>
-							void updateRoom({
-								appendKaraoke: !room.appendKaraoke,
-							})
-						}
-					>
-						{room.appendKaraoke ? 'On' : 'Off'}
-					</Button>
-				</div>
-
-				{error && <p className='text-sm text-error'>{error}</p>}
-
-				{room.status === 'OPEN' && (
-					<Button
-						type='button'
-						variant='ghost'
+					<Switch
+						label='Enable AI search'
+						description="Rank/filter results with an LLM. Off uses YouTube's own results directly — faster, no AI dependency."
+						checked={room.aiSearchEnabled}
 						disabled={saving}
-						onClick={() => void updateRoom({ status: 'CLOSED' })}
-					>
-						Close room
-					</Button>
-				)}
-			</Card>
+						onChange={(checked) =>
+							void updateRoom({ aiSearchEnabled: checked })
+						}
+					/>
+
+					<Switch
+						label='Append "karaoke"'
+						description='Bias every search toward singable karaoke/instrumental versions instead of original recordings.'
+						checked={room.appendKaraoke}
+						disabled={saving}
+						onChange={(checked) =>
+							void updateRoom({ appendKaraoke: checked })
+						}
+					/>
+				</Overlay>
+			)}
+
+			{error && <p className='text-sm text-error'>{error}</p>}
 
 			{restOfQueue.length > 0 && (
 				<div className='space-y-2'>

@@ -1,14 +1,11 @@
-import type { HTMLAttributes } from 'react';
+import type { ComponentProps } from 'react';
 
-// The one bordered-surface container every page/feature composes with,
-// instead of each component hand-writing its own `rounded border p-4`
-// string. Deliberately just a styled `div` — for a *clickable* card (the
-// hub's game links), style a <Link> directly with matching classes rather
-// than forcing navigation semantics through this component.
+// Just a styled div, not clickable: style a <Link> directly for that instead. ComponentProps<'div'> (not
+// HTMLAttributes) so ref is a valid prop too, for SongSearch's click-outside-to-dismiss handler.
 export default function Card({
 	className = '',
 	...rest
-}: HTMLAttributes<HTMLDivElement>) {
+}: ComponentProps<'div'>) {
 	return (
 		<div
 			className={`rounded-lg border border-border bg-surface ${className}`}
