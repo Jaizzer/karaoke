@@ -1,5 +1,6 @@
 import config from '../config/env.ts';
 import ServiceNotConfiguredError from './serviceNotConfiguredError.ts';
+import decodeHtmlEntities from './decodeHtmlEntities.ts';
 
 export interface YoutubeCandidate {
 	videoId: string;
@@ -93,8 +94,8 @@ export async function searchYoutube(
 		)
 		.map((item) => ({
 			videoId: item.id.videoId,
-			title: item.snippet.title,
-			channelTitle: item.snippet.channelTitle,
+			title: decodeHtmlEntities(item.snippet.title),
+			channelTitle: decodeHtmlEntities(item.snippet.channelTitle),
 			thumbnailUrl:
 				item.snippet.thumbnails.medium?.url ??
 				item.snippet.thumbnails.default.url,
