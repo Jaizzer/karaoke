@@ -18,12 +18,19 @@ interface RemoveControls {
 	onRemove: (item: QueueItem) => void;
 }
 
+// omitted by HostDashboard, only MemberRoomPage passes this, so only a guest sees
+// their own songs picked out from everyone else's.
+interface OwnershipHighlight {
+	isOwn?: (item: QueueItem) => boolean;
+}
+
 // Only HostDashboard passes this, so only the host sees reorder arrows; queue.service.ts 409s past either end.
 interface MoveControls {
 	onMove?: (item: QueueItem, direction: 'up' | 'down') => void;
 }
 
-interface FeaturedQueueCardProps extends RemoveControls, MoveControls {
+interface FeaturedQueueCardProps
+	extends RemoveControls, MoveControls, OwnershipHighlight {
 	item: QueueItem | undefined;
 	label: string;
 	actionLabel: string;
@@ -41,13 +48,16 @@ function FeaturedQueueCard({
 	onRemove,
 	onMove,
 	canMoveUp = false,
+	isOwn,
 }: FeaturedQueueCardProps) {
 	if (!item) {
 		return null;
 	}
 
 	return (
-		<Card className='flex items-center gap-3 p-4'>
+		<Card
+			className={`flex items-center gap-3 p-4 ${isOwn?.(item) ? 'border-l-4 border-l-accent bg-accent/5' : ''}`}
+		>
 			<img
 				src={item.thumbnailUrl}
 				alt=''
@@ -94,7 +104,7 @@ function FeaturedQueueCard({
 				<Button
 					type='button'
 					variant='ghost'
-					className='px-2 py-1 text-xs'
+					className='w-20 px-2 py-1 text-xs'
 					onClick={() => {
 						onRemove(item);
 					}}
@@ -106,7 +116,8 @@ function FeaturedQueueCard({
 	);
 }
 
-interface SingleItemCardProps extends RemoveControls, MoveControls {
+interface SingleItemCardProps
+	extends RemoveControls, MoveControls, OwnershipHighlight {
 	item: QueueItem | undefined;
 }
 
@@ -127,8 +138,11 @@ export function NextUpCard({ onMove, ...props }: SingleItemCardProps) {
 	);
 }
 
-interface UpNextListProps extends RemoveControls, MoveControls {
+interface UpNextListProps
+	extends RemoveControls, MoveControls, OwnershipHighlight {
 	items: QueueItem[];
+	// HostDashboard's queue competes for space and keeps the tighter default; MemberRoomPage passes a taller cap.
+	maxHeightClassName?: string;
 }
 
 // Height-capped and scrollable since a queue can get long; holds everything beyond the one song in NextUpCard.
@@ -137,16 +151,20 @@ export function UpNextList({
 	canRemove,
 	onRemove,
 	onMove,
+	isOwn,
+	maxHeightClassName = 'max-h-72',
 }: UpNextListProps) {
 	if (items.length === 0) {
 		return <p className='text-sm text-text-muted'>Nothing queued yet.</p>;
 	}
 
 	return (
-		<ul className='max-h-72 space-y-2 overflow-y-auto pr-1'>
+		<ul className={`${maxHeightClassName} space-y-2 overflow-y-auto pr-1`}>
 			{items.map((item) => (
 				<li key={item.id}>
-					<Card className='flex items-center gap-3 p-3'>
+					<Card
+						className={`flex items-center gap-3 p-3 ${isOwn?.(item) ? 'border-l-4 border-l-accent bg-accent/5' : ''}`}
+					>
 						<img
 							src={item.thumbnailUrl}
 							alt=''
@@ -188,7 +206,7 @@ export function UpNextList({
 							<Button
 								type='button'
 								variant='ghost'
-								className='px-2 py-1 text-xs'
+								className='w-20 px-2 py-1 text-xs'
 								onClick={() => {
 									onRemove(item);
 								}}
@@ -203,7 +221,7 @@ export function UpNextList({
 	);
 }
 
-interface QueueListProps extends RemoveControls {
+interface QueueListProps extends RemoveControls, OwnershipHighlight {
 	queueItems: QueueItem[];
 }
 
@@ -211,6 +229,7 @@ export default function QueueList({
 	queueItems,
 	canRemove,
 	onRemove,
+	isOwn,
 }: QueueListProps) {
 	const nowPlaying = queueItems.find((item) => item.status === 'PLAYING');
 	const upNext = queueItems.filter((item) => item.status === 'QUEUED');
@@ -221,11 +240,14 @@ export default function QueueList({
 				item={nowPlaying}
 				canRemove={canRemove}
 				onRemove={onRemove}
+				isOwn={isOwn}
 			/>
 			<UpNextList
 				items={upNext}
 				canRemove={canRemove}
 				onRemove={onRemove}
+				isOwn={isOwn}
+				maxHeightClassName='max-h-[60vh]'
 			/>
 		</div>
 	);
