@@ -1,5 +1,6 @@
 // AuthenticatedLayout gates host-facing routes behind a signed-in session; /join/:code and /rooms/:code stay
 // public. Routes stay flat in one tree since a nested <Routes> would let /rooms/:code swallow /rooms/new first.
+import { useEffect, useState } from 'react';
 import {
 	BrowserRouter,
 	Routes,
@@ -7,8 +8,10 @@ import {
 	Navigate,
 	Link,
 	Outlet,
+	useLocation,
 } from 'react-router';
 import { authClient, useSession } from './lib/authClient.ts';
+import { apiFetch } from './lib/api.ts';
 import AuthPanel from './features/auth/AuthPanel.tsx';
 import EmailVerificationBanner from './features/auth/EmailVerificationBanner.tsx';
 import HomePage from './pages/HomePage.tsx';
@@ -16,13 +19,36 @@ import ResetPasswordPage from './pages/ResetPasswordPage.tsx';
 import RoomCreatePage from './pages/RoomCreatePage.tsx';
 import HostDisplayPage from './pages/HostDisplayPage.tsx';
 import JoinPage from './pages/JoinPage.tsx';
+import JoinLandingPage from './pages/JoinLandingPage.tsx';
 import MemberRoomPage from './pages/MemberRoomPage.tsx';
 import Button from './components/Button.tsx';
 import AuthHero from './components/AuthHero.tsx';
 
+interface MyRoom {
+	code: string;
+}
+
 // signed out -> just the auth panel. signed in -> persistent header + <Outlet/>.
 function AuthenticatedLayout() {
 	const { data: session, isPending } = useSession();
+	const location = useLocation();
+
+	// A host can only run one room at a time; this decides whether the header shows "Host a room" or links back
+	// into it. Re-fetched on every navigation, not just session changes, since this layout persists across routes.
+	const [myRoom, setMyRoom] = useState<MyRoom | null>(null);
+	useEffect(() => {
+		if (!session) {
+			return;
+		}
+		apiFetch<{ room: MyRoom | null }>('/api/v1/rooms/mine')
+			.then(({ room }) => {
+				setMyRoom(room);
+			})
+			.catch(() => {
+				// worst case the header just offers "Host a room" and the
+				// create-room page itself still enforces the one-room rule.
+			});
+	}, [session, location.pathname]);
 
 	if (!session) {
 		return (
@@ -51,12 +77,21 @@ function AuthenticatedLayout() {
 					<Link to='/' className='text-lg font-bold text-text'>
 						Karaoke
 					</Link>
-					<Link
-						to='/rooms/new'
-						className='text-sm text-text-muted hover:text-text'
-					>
-						Host a room
-					</Link>
+					{myRoom ? (
+						<Link
+							to={`/rooms/${myRoom.code}/host`}
+							className='text-sm text-text-muted hover:text-text'
+						>
+							Your room: {myRoom.code}
+						</Link>
+					) : (
+						<Link
+							to='/rooms/new'
+							className='text-sm text-text-muted hover:text-text'
+						>
+							Host a room
+						</Link>
+					)}
 				</div>
 				<div className='flex items-center gap-3 text-sm'>
 					<span className='text-text-muted'>
@@ -89,6 +124,7 @@ export default function App() {
 		<BrowserRouter>
 			<Routes>
 				<Route path='/reset-password' element={<ResetPasswordPage />} />
+				<Route path='/join' element={<JoinLandingPage />} />
 				<Route path='/join/:code' element={<JoinPage />} />
 				<Route path='/rooms/:code' element={<MemberRoomPage />} />
 

@@ -1,7 +1,10 @@
 // The guest's ongoing view of a room once joined; public route, gated by a locally-stored session token.
-import { useEffect, useState } from 'react';
-import { Navigate, useParams } from 'react-router';
-import { getRoomMemberSession } from '../lib/roomMemberStorage.ts';
+import { useEffect } from 'react';
+import { Navigate, useNavigate, useParams } from 'react-router';
+import {
+	getRoomMemberSession,
+	clearRoomMemberSession,
+} from '../lib/roomMemberStorage.ts';
 import { usePolling } from '../lib/usePolling.ts';
 import { apiFetch } from '../lib/api.ts';
 import SongSearch from '../features/song-search/SongSearch.tsx';
@@ -14,12 +17,14 @@ interface QueueResponse {
 
 interface Room {
 	aiSearchEnabled: boolean;
+	status: 'OPEN' | 'CLOSED';
 }
 
 const POLL_INTERVAL_MS = 3000;
 
 export default function MemberRoomPage() {
 	const { code } = useParams<{ code: string }>();
+	const navigate = useNavigate();
 	const session = code ? getRoomMemberSession(code) : null;
 
 	const { data, refetch } = usePolling<QueueResponse>(
@@ -27,28 +32,39 @@ export default function MemberRoomPage() {
 		POLL_INTERVAL_MS,
 	);
 
-	// Fetched once, not polled — only used to decide whether to offer the
-	// "Use AI search" checkbox at all; the backend re-enforces this gate
-	// regardless, so a stale value here can't grant anything.
-	const [aiSearchEnabled, setAiSearchEnabled] = useState(false);
+	// Polled, not fetched once: how a guest still in the room finds out it closed without needing to reload.
+	const { data: roomData } = usePolling<{ room: Room }>(
+		code ? `/api/v1/rooms/${code}` : null,
+		POLL_INTERVAL_MS,
+	);
+	const room = roomData?.room;
+
 	useEffect(() => {
-		if (!code) {
+		if (!code || !room || room.status !== 'CLOSED') {
 			return;
 		}
-		apiFetch<{ room: Room }>(`/api/v1/rooms/${code}`)
-			.then(({ room }) => {
-				setAiSearchEnabled(room.aiSearchEnabled);
-			})
-			.catch(() => {
-				// Leave the checkbox hidden — same outcome as the host having
-				// disabled AI search.
-			});
-	}, [code]);
+		clearRoomMemberSession(code);
+		navigate('/join', {
+			replace: true,
+			state: {
+				notice: 'That room has closed. Join another with a code or QR.',
+			},
+		});
+	}, [code, room, navigate]);
 
 	// No stored token for this code, either they never joined or they're on
 	// a different device. Either way, /join/:code is where to fix that.
 	if (!code || !session) {
 		return <Navigate to={`/join/${code ?? ''}`} replace />;
+	}
+
+	// Covers both "still loading" and "closed, about to redirect" so the search box and queue don't flash first.
+	if (room?.status === 'CLOSED') {
+		return (
+			<p className='py-6 text-center text-sm text-text-muted'>
+				That room has closed…
+			</p>
+		);
 	}
 
 	// Rebound to its own const so the closures below see the narrowed (non-null) type, not the outer widened one.
@@ -81,13 +97,14 @@ export default function MemberRoomPage() {
 			<SongSearch
 				code={code}
 				sessionToken={memberSession.sessionToken}
-				aiSearchAvailable={aiSearchEnabled}
+				aiSearchAvailable={room?.aiSearchEnabled ?? false}
 				onQueued={refetch}
 			/>
 
 			<QueueList
 				queueItems={data?.queueItems ?? []}
 				canRemove={(item) => item.addedById === memberSession.memberId}
+				isOwn={(item) => item.addedById === memberSession.memberId}
 				onRemove={(item) => void handleRemove(item)}
 			/>
 		</div>

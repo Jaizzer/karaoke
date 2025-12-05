@@ -25,3 +25,8 @@ export function setRoomMemberSession(
 ): void {
 	localStorage.setItem(KEY_PREFIX + code, JSON.stringify(session));
 }
+
+// Called once a room closes; clears the dead token so JoinPage's "already joined" shortcut doesn't bounce them back.
+export function clearRoomMemberSession(code: string): void {
+	localStorage.removeItem(KEY_PREFIX + code);
+}
