@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router';
 import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch, ApiError } from '../../lib/api.ts';
 import { usePolling } from '../../lib/usePolling.ts';
+import { useSession } from '../../lib/authClient.ts';
 import Badge from '../../components/Badge.tsx';
 import Button from '../../components/Button.tsx';
 import Switch from '../../components/Switch.tsx';
@@ -21,9 +22,11 @@ import SongSearch from '../song-search/SongSearch.tsx';
 interface Room {
 	code: string;
 	name: string | null;
+	hostId: string;
 	aiSearchEnabled: boolean;
 	appendKaraoke: boolean;
 	status: 'OPEN' | 'CLOSED';
+	activeHostSessionId: string | null;
 }
 
 interface QueueResponse {
@@ -35,11 +38,19 @@ const POLL_INTERVAL_MS = 3000;
 export default function HostDashboard() {
 	const { code } = useParams<{ code: string }>();
 	const navigate = useNavigate();
+	const { data: session } = useSession();
 	const [error, setError] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
 	const [showRoomCode, setShowRoomCode] = useState(false);
 	const [showSettings, setShowSettings] = useState(false);
 	const [linkCopied, setLinkCopied] = useState(false);
+
+	// One id per mount, used to claim this room via claim-host so only the real host can load this
+	// dashboard; whichever tab claims most recently is the only one still in control (see lockedOut below).
+	const [claimedSessionId] = useState(() => crypto.randomUUID());
+	const [claimStatus, setClaimStatus] = useState<
+		'pending' | 'claimed' | 'forbidden'
+	>('pending');
 
 	const { data: queueData, refetch: refetchQueue } =
 		usePolling<QueueResponse>(
@@ -63,6 +74,37 @@ export default function HostDashboard() {
 			navigate('/');
 		}
 	}, [room, navigate]);
+
+	useEffect(() => {
+		if (!code || !session) {
+			return;
+		}
+		apiFetch<{ room: Room }>(`/api/v1/rooms/${code}/claim-host`, {
+			method: 'POST',
+			body: JSON.stringify({ sessionId: claimedSessionId }),
+		})
+			.then(() => {
+				setClaimStatus('claimed');
+				refetchRoom();
+			})
+			.catch((caught: unknown) => {
+				setClaimStatus(
+					caught instanceof ApiError && caught.status === 403
+						? 'forbidden'
+						: 'pending',
+				);
+			});
+		// refetchRoom is stable (usePolling memoizes it with useCallback), so this
+		// only re-runs on an actual code/session change, not on every room poll tick.
+	}, [code, session, refetchRoom, claimedSessionId]);
+
+	// true once another tab/device has claimed this room after we did:
+	// room.activeHostSessionId no longer matches the id we claimed with.
+	const lockedOut =
+		claimStatus === 'claimed' &&
+		room?.activeHostSessionId !== null &&
+		room?.activeHostSessionId !== undefined &&
+		room.activeHostSessionId !== claimedSessionId;
 
 	// auto-advance: whenever nothing is playing but something is queued, start
 	// it. guarded by a ref (not state) so an in-flight POST can't double-fire if
@@ -159,6 +201,22 @@ export default function HostDashboard() {
 		} finally {
 			setSaving(false);
 		}
+	}
+
+	if (claimStatus === 'forbidden') {
+		return (
+			<p className='py-6 text-sm text-error'>
+				You're not the host of this room.
+			</p>
+		);
+	}
+
+	if (lockedOut) {
+		return (
+			<p className='py-6 text-sm text-text-muted'>
+				This room is being controlled from another tab or device.
+			</p>
+		);
 	}
 
 	// Covers both "still loading" and "closed, about to redirect" so the dashboard doesn't flash first.
