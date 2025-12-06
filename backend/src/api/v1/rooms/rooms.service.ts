@@ -47,6 +47,14 @@ export async function createRoom(
 	return room;
 }
 
+// Most recent claim wins; callers must already have verified the caller is this room's host.
+export async function claimHost(id: string, sessionId: string) {
+	return prisma.room.update({
+		where: { id },
+		data: { activeHostSessionId: sessionId },
+	});
+}
+
 export async function updateRoom(
 	id: string,
 	data: {

@@ -31,6 +31,7 @@ export type RoomMinAggregateOutputType = {
   hostId: string | null
   aiSearchEnabled: boolean | null
   appendKaraoke: boolean | null
+  activeHostSessionId: string | null
   status: $Enums.RoomStatus | null
   createdAt: Date | null
 }
@@ -42,6 +43,7 @@ export type RoomMaxAggregateOutputType = {
   hostId: string | null
   aiSearchEnabled: boolean | null
   appendKaraoke: boolean | null
+  activeHostSessionId: string | null
   status: $Enums.RoomStatus | null
   createdAt: Date | null
 }
@@ -53,6 +55,7 @@ export type RoomCountAggregateOutputType = {
   hostId: number
   aiSearchEnabled: number
   appendKaraoke: number
+  activeHostSessionId: number
   status: number
   createdAt: number
   _all: number
@@ -66,6 +69,7 @@ export type RoomMinAggregateInputType = {
   hostId?: true
   aiSearchEnabled?: true
   appendKaraoke?: true
+  activeHostSessionId?: true
   status?: true
   createdAt?: true
 }
@@ -77,6 +81,7 @@ export type RoomMaxAggregateInputType = {
   hostId?: true
   aiSearchEnabled?: true
   appendKaraoke?: true
+  activeHostSessionId?: true
   status?: true
   createdAt?: true
 }
@@ -88,6 +93,7 @@ export type RoomCountAggregateInputType = {
   hostId?: true
   aiSearchEnabled?: true
   appendKaraoke?: true
+  activeHostSessionId?: true
   status?: true
   createdAt?: true
   _all?: true
@@ -172,6 +178,7 @@ export type RoomGroupByOutputType = {
   hostId: string
   aiSearchEnabled: boolean
   appendKaraoke: boolean
+  activeHostSessionId: string | null
   status: $Enums.RoomStatus
   createdAt: Date
   _count: RoomCountAggregateOutputType | null
@@ -204,6 +211,7 @@ export type RoomWhereInput = {
   hostId?: Prisma.StringFilter<"Room"> | string
   aiSearchEnabled?: Prisma.BoolFilter<"Room"> | boolean
   appendKaraoke?: Prisma.BoolFilter<"Room"> | boolean
+  activeHostSessionId?: Prisma.StringNullableFilter<"Room"> | string | null
   status?: Prisma.EnumRoomStatusFilter<"Room"> | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFilter<"Room"> | Date | string
   host?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -218,6 +226,7 @@ export type RoomOrderByWithRelationInput = {
   hostId?: Prisma.SortOrder
   aiSearchEnabled?: Prisma.SortOrder
   appendKaraoke?: Prisma.SortOrder
+  activeHostSessionId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   host?: Prisma.UserOrderByWithRelationInput
@@ -235,6 +244,7 @@ export type RoomWhereUniqueInput = Prisma.AtLeast<{
   hostId?: Prisma.StringFilter<"Room"> | string
   aiSearchEnabled?: Prisma.BoolFilter<"Room"> | boolean
   appendKaraoke?: Prisma.BoolFilter<"Room"> | boolean
+  activeHostSessionId?: Prisma.StringNullableFilter<"Room"> | string | null
   status?: Prisma.EnumRoomStatusFilter<"Room"> | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFilter<"Room"> | Date | string
   host?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -249,6 +259,7 @@ export type RoomOrderByWithAggregationInput = {
   hostId?: Prisma.SortOrder
   aiSearchEnabled?: Prisma.SortOrder
   appendKaraoke?: Prisma.SortOrder
+  activeHostSessionId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.RoomCountOrderByAggregateInput
@@ -266,6 +277,7 @@ export type RoomScalarWhereWithAggregatesInput = {
   hostId?: Prisma.StringWithAggregatesFilter<"Room"> | string
   aiSearchEnabled?: Prisma.BoolWithAggregatesFilter<"Room"> | boolean
   appendKaraoke?: Prisma.BoolWithAggregatesFilter<"Room"> | boolean
+  activeHostSessionId?: Prisma.StringNullableWithAggregatesFilter<"Room"> | string | null
   status?: Prisma.EnumRoomStatusWithAggregatesFilter<"Room"> | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Room"> | Date | string
 }
@@ -276,6 +288,7 @@ export type RoomCreateInput = {
   name?: string | null
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: string | null
   status?: $Enums.RoomStatus
   createdAt?: Date | string
   host: Prisma.UserCreateNestedOneWithoutHostedRoomsInput
@@ -290,6 +303,7 @@ export type RoomUncheckedCreateInput = {
   hostId: string
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: string | null
   status?: $Enums.RoomStatus
   createdAt?: Date | string
   members?: Prisma.RoomMemberUncheckedCreateNestedManyWithoutRoomInput
@@ -302,6 +316,7 @@ export type RoomUpdateInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   aiSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   appendKaraoke?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  activeHostSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRoomStatusFieldUpdateOperationsInput | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   host?: Prisma.UserUpdateOneRequiredWithoutHostedRoomsNestedInput
@@ -316,6 +331,7 @@ export type RoomUncheckedUpdateInput = {
   hostId?: Prisma.StringFieldUpdateOperationsInput | string
   aiSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   appendKaraoke?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  activeHostSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRoomStatusFieldUpdateOperationsInput | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   members?: Prisma.RoomMemberUncheckedUpdateManyWithoutRoomNestedInput
@@ -329,6 +345,7 @@ export type RoomCreateManyInput = {
   hostId: string
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: string | null
   status?: $Enums.RoomStatus
   createdAt?: Date | string
 }
@@ -339,6 +356,7 @@ export type RoomUpdateManyMutationInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   aiSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   appendKaraoke?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  activeHostSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRoomStatusFieldUpdateOperationsInput | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -350,6 +368,7 @@ export type RoomUncheckedUpdateManyInput = {
   hostId?: Prisma.StringFieldUpdateOperationsInput | string
   aiSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   appendKaraoke?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  activeHostSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRoomStatusFieldUpdateOperationsInput | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -371,6 +390,7 @@ export type RoomCountOrderByAggregateInput = {
   hostId?: Prisma.SortOrder
   aiSearchEnabled?: Prisma.SortOrder
   appendKaraoke?: Prisma.SortOrder
+  activeHostSessionId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -382,6 +402,7 @@ export type RoomMaxOrderByAggregateInput = {
   hostId?: Prisma.SortOrder
   aiSearchEnabled?: Prisma.SortOrder
   appendKaraoke?: Prisma.SortOrder
+  activeHostSessionId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -393,6 +414,7 @@ export type RoomMinOrderByAggregateInput = {
   hostId?: Prisma.SortOrder
   aiSearchEnabled?: Prisma.SortOrder
   appendKaraoke?: Prisma.SortOrder
+  activeHostSessionId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -482,6 +504,7 @@ export type RoomCreateWithoutHostInput = {
   name?: string | null
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: string | null
   status?: $Enums.RoomStatus
   createdAt?: Date | string
   members?: Prisma.RoomMemberCreateNestedManyWithoutRoomInput
@@ -494,6 +517,7 @@ export type RoomUncheckedCreateWithoutHostInput = {
   name?: string | null
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: string | null
   status?: $Enums.RoomStatus
   createdAt?: Date | string
   members?: Prisma.RoomMemberUncheckedCreateNestedManyWithoutRoomInput
@@ -536,6 +560,7 @@ export type RoomScalarWhereInput = {
   hostId?: Prisma.StringFilter<"Room"> | string
   aiSearchEnabled?: Prisma.BoolFilter<"Room"> | boolean
   appendKaraoke?: Prisma.BoolFilter<"Room"> | boolean
+  activeHostSessionId?: Prisma.StringNullableFilter<"Room"> | string | null
   status?: Prisma.EnumRoomStatusFilter<"Room"> | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFilter<"Room"> | Date | string
 }
@@ -546,6 +571,7 @@ export type RoomCreateWithoutMembersInput = {
   name?: string | null
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: string | null
   status?: $Enums.RoomStatus
   createdAt?: Date | string
   host: Prisma.UserCreateNestedOneWithoutHostedRoomsInput
@@ -559,6 +585,7 @@ export type RoomUncheckedCreateWithoutMembersInput = {
   hostId: string
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: string | null
   status?: $Enums.RoomStatus
   createdAt?: Date | string
   queueItems?: Prisma.QueueItemUncheckedCreateNestedManyWithoutRoomInput
@@ -586,6 +613,7 @@ export type RoomUpdateWithoutMembersInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   aiSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   appendKaraoke?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  activeHostSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRoomStatusFieldUpdateOperationsInput | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   host?: Prisma.UserUpdateOneRequiredWithoutHostedRoomsNestedInput
@@ -599,6 +627,7 @@ export type RoomUncheckedUpdateWithoutMembersInput = {
   hostId?: Prisma.StringFieldUpdateOperationsInput | string
   aiSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   appendKaraoke?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  activeHostSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRoomStatusFieldUpdateOperationsInput | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   queueItems?: Prisma.QueueItemUncheckedUpdateManyWithoutRoomNestedInput
@@ -610,6 +639,7 @@ export type RoomCreateWithoutQueueItemsInput = {
   name?: string | null
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: string | null
   status?: $Enums.RoomStatus
   createdAt?: Date | string
   host: Prisma.UserCreateNestedOneWithoutHostedRoomsInput
@@ -623,6 +653,7 @@ export type RoomUncheckedCreateWithoutQueueItemsInput = {
   hostId: string
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: string | null
   status?: $Enums.RoomStatus
   createdAt?: Date | string
   members?: Prisma.RoomMemberUncheckedCreateNestedManyWithoutRoomInput
@@ -650,6 +681,7 @@ export type RoomUpdateWithoutQueueItemsInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   aiSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   appendKaraoke?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  activeHostSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRoomStatusFieldUpdateOperationsInput | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   host?: Prisma.UserUpdateOneRequiredWithoutHostedRoomsNestedInput
@@ -663,6 +695,7 @@ export type RoomUncheckedUpdateWithoutQueueItemsInput = {
   hostId?: Prisma.StringFieldUpdateOperationsInput | string
   aiSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   appendKaraoke?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  activeHostSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRoomStatusFieldUpdateOperationsInput | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   members?: Prisma.RoomMemberUncheckedUpdateManyWithoutRoomNestedInput
@@ -674,6 +707,7 @@ export type RoomCreateManyHostInput = {
   name?: string | null
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: string | null
   status?: $Enums.RoomStatus
   createdAt?: Date | string
 }
@@ -684,6 +718,7 @@ export type RoomUpdateWithoutHostInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   aiSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   appendKaraoke?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  activeHostSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRoomStatusFieldUpdateOperationsInput | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   members?: Prisma.RoomMemberUpdateManyWithoutRoomNestedInput
@@ -696,6 +731,7 @@ export type RoomUncheckedUpdateWithoutHostInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   aiSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   appendKaraoke?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  activeHostSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRoomStatusFieldUpdateOperationsInput | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   members?: Prisma.RoomMemberUncheckedUpdateManyWithoutRoomNestedInput
@@ -708,6 +744,7 @@ export type RoomUncheckedUpdateManyWithoutHostInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   aiSearchEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   appendKaraoke?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  activeHostSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumRoomStatusFieldUpdateOperationsInput | $Enums.RoomStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -759,6 +796,7 @@ export type RoomSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   hostId?: boolean
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: boolean
   status?: boolean
   createdAt?: boolean
   host?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -774,6 +812,7 @@ export type RoomSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   hostId?: boolean
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: boolean
   status?: boolean
   createdAt?: boolean
   host?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -786,6 +825,7 @@ export type RoomSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   hostId?: boolean
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: boolean
   status?: boolean
   createdAt?: boolean
   host?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -798,11 +838,12 @@ export type RoomSelectScalar = {
   hostId?: boolean
   aiSearchEnabled?: boolean
   appendKaraoke?: boolean
+  activeHostSessionId?: boolean
   status?: boolean
   createdAt?: boolean
 }
 
-export type RoomOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "name" | "hostId" | "aiSearchEnabled" | "appendKaraoke" | "status" | "createdAt", ExtArgs["result"]["room"]>
+export type RoomOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "name" | "hostId" | "aiSearchEnabled" | "appendKaraoke" | "activeHostSessionId" | "status" | "createdAt", ExtArgs["result"]["room"]>
 export type RoomInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   host?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   members?: boolean | Prisma.Room$membersArgs<ExtArgs>
@@ -830,6 +871,7 @@ export type $RoomPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     hostId: string
     aiSearchEnabled: boolean
     appendKaraoke: boolean
+    activeHostSessionId: string | null
     status: $Enums.RoomStatus
     createdAt: Date
   }, ExtArgs["result"]["room"]>
@@ -1264,6 +1306,7 @@ export interface RoomFieldRefs {
   readonly hostId: Prisma.FieldRef<"Room", 'String'>
   readonly aiSearchEnabled: Prisma.FieldRef<"Room", 'Boolean'>
   readonly appendKaraoke: Prisma.FieldRef<"Room", 'Boolean'>
+  readonly activeHostSessionId: Prisma.FieldRef<"Room", 'String'>
   readonly status: Prisma.FieldRef<"Room", 'RoomStatus'>
   readonly createdAt: Prisma.FieldRef<"Room", 'DateTime'>
 }

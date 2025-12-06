@@ -182,4 +182,56 @@ describe('/api/v1/rooms', () => {
 			.send({ status: 'DELETED' });
 		expect(response.status).toBe(400);
 	});
+
+	test('rejects claiming host with no session', async () => {
+		const created = roomFrom(await createRoom());
+
+		const response = await request(app)
+			.post(`/api/v1/rooms/${created.code}/claim-host`)
+			.send({ sessionId: 'tab-1' });
+		expect(response.status).toBe(401);
+	});
+
+	// The actual regression case: a different signed-in account shouldn't be able to claim a room it doesn't own.
+	test("rejects a signed-in user claiming someone else's room", async () => {
+		const created = roomFrom(await createRoom());
+
+		const response = await otherAgent
+			.post(`/api/v1/rooms/${created.code}/claim-host`)
+			.send({ sessionId: 'tab-1' });
+		expect(response.status).toBe(403);
+	});
+
+	test('lets the host claim their room, and the latest claim wins', async () => {
+		const created = roomFrom(await createRoom());
+
+		const first = await hostAgent
+			.post(`/api/v1/rooms/${created.code}/claim-host`)
+			.send({ sessionId: 'tab-1' });
+		expect(first.status).toBe(200);
+		expect(
+			(first.body as { room: { activeHostSessionId: string } }).room
+				.activeHostSessionId,
+		).toBe('tab-1');
+
+		// a second tab (or device/browser) claiming the same room overwrites
+		// the first, that's the whole single-active-session mechanism
+		const second = await hostAgent
+			.post(`/api/v1/rooms/${created.code}/claim-host`)
+			.send({ sessionId: 'tab-2' });
+		expect(second.status).toBe(200);
+		expect(
+			(second.body as { room: { activeHostSessionId: string } }).room
+				.activeHostSessionId,
+		).toBe('tab-2');
+	});
+
+	test('rejects an invalid claim-host body', async () => {
+		const created = roomFrom(await createRoom());
+
+		const response = await hostAgent
+			.post(`/api/v1/rooms/${created.code}/claim-host`)
+			.send({});
+		expect(response.status).toBe(400);
+	});
 });

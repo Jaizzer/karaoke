@@ -37,3 +37,8 @@ export const AddQueueItemSchema = z.object({
 export const MoveQueueItemSchema = z.object({
 	direction: z.enum(['up', 'down']),
 });
+
+// sessionId is an opaque per-tab id (crypto.randomUUID()), not a secret, just a coordination token.
+export const ClaimHostSchema = z.object({
+	sessionId: z.string().min(1).max(100),
+});

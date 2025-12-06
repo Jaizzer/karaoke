@@ -109,25 +109,32 @@ enum QueueItemStatus {
 // QR guests scan to join (see room-members below) — unique so it can be
 // looked up directly, with no numeric id exposed to guests.
 model Room {
-  id              String       @id @default(uuid())
-  code            String       @unique
-  name            String?
-  hostId          String
-  host            User         @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id                  String       @id @default(uuid())
+  code                String       @unique
+  name                String?
+  hostId              String
+  host                User         @relation(fields: [hostId], references: [id], onDelete: Cascade)
   // Whether AI-ranked search is available in this room at all — a
   // per-search host permission gate, not a behavior itself. When on, each
   // guest separately opts in per search (see search.handler.ts) and, if
   // they do, can also choose auto-select (the single best match queued
   // straight away instead of a top-5 they pick from).
-  aiSearchEnabled Boolean      @default(true)
+  aiSearchEnabled     Boolean      @default(true)
   // When on, every search query is sent to YouTube with " karaoke"
   // appended (search.service.ts), biasing results toward singable
   // instrumental/backing-track versions instead of original recordings.
-  appendKaraoke   Boolean      @default(true)
-  status          RoomStatus   @default(OPEN)
-  createdAt       DateTime     @default(now())
-  members         RoomMember[]
-  queueItems      QueueItem[]
+  appendKaraoke       Boolean      @default(true)
+  // Whichever browser tab/device most recently claimed control (see
+  // rooms.handler.ts's postClaimHost) — an opaque id the host's own
+  // frontend generates, not a security boundary by itself (claiming still
+  // requires being req.user.id === hostId). Lets only one tab/device act
+  // as "the" host dashboard for this room at a time: every other tab
+  // polls this and locks itself out once it no longer matches.
+  activeHostSessionId String?
+  status              RoomStatus   @default(OPEN)
+  createdAt           DateTime     @default(now())
+  members             RoomMember[]
+  queueItems          QueueItem[]
 
   @@index([hostId])
   @@map("room")

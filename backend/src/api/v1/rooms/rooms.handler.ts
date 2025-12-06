@@ -1,7 +1,16 @@
 import type { Request, Response } from 'express';
-import { CreateRoomSchema, UpdateRoomSchema } from '../../../lib/validators.ts';
+import {
+	CreateRoomSchema,
+	UpdateRoomSchema,
+	ClaimHostSchema,
+} from '../../../lib/validators.ts';
 import resolveRoom from '../../../lib/resolveRoom.ts';
-import { createRoom, updateRoom, findOpenRoomByHost } from './rooms.service.ts';
+import {
+	createRoom,
+	updateRoom,
+	findOpenRoomByHost,
+	claimHost,
+} from './rooms.service.ts';
 
 export async function postRoom(req: Request, res: Response) {
 	if (!req.user) {
@@ -77,5 +86,33 @@ export async function patchRoom(req: Request, res: Response) {
 	}
 
 	const updated = await updateRoom(room.id, parsedBody.data);
+	res.status(200).json({ room: updated });
+}
+
+// Does two things: the actual authorization check (only this room's host can claim it, closing the gap where
+// any signed-in account got a working dashboard just by visiting the link) and the single-active-tab mechanism.
+export async function postClaimHost(req: Request, res: Response) {
+	if (!req.user) {
+		res.status(401).json({ message: 'Not signed in.' });
+		return;
+	}
+
+	const room = await resolveRoom(req, res);
+	if (!room) {
+		return;
+	}
+
+	if (room.hostId !== req.user.id) {
+		res.status(403).json({ message: 'Not allowed to control this room.' });
+		return;
+	}
+
+	const parsedBody = ClaimHostSchema.safeParse(req.body);
+	if (!parsedBody.success) {
+		res.status(400).json({ message: 'Invalid request body.' });
+		return;
+	}
+
+	const updated = await claimHost(room.id, parsedBody.data.sessionId);
 	res.status(200).json({ room: updated });
 }
