@@ -215,6 +215,7 @@ export default function SongSearch({
 					onDismiss={() => {
 						setConfirmation(null);
 					}}
+					className='absolute top-full right-0 left-0 z-40 mt-2'
 				/>
 			)}
 
