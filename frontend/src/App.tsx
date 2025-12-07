@@ -23,6 +23,7 @@ import JoinLandingPage from './pages/JoinLandingPage.tsx';
 import MemberRoomPage from './pages/MemberRoomPage.tsx';
 import Button from './components/Button.tsx';
 import AuthHero from './components/AuthHero.tsx';
+import Overlay from './components/Overlay.tsx';
 
 interface MyRoom {
 	code: string;
@@ -36,6 +37,7 @@ function AuthenticatedLayout() {
 	// A host can only run one room at a time; this decides whether the header shows "Host a room" or links back
 	// into it. Re-fetched on every navigation, not just session changes, since this layout persists across routes.
 	const [myRoom, setMyRoom] = useState<MyRoom | null>(null);
+	const [showAccountMenu, setShowAccountMenu] = useState(false);
 	useEffect(() => {
 		if (!session) {
 			return;
@@ -93,7 +95,9 @@ function AuthenticatedLayout() {
 						</Link>
 					)}
 				</div>
-				<div className='flex items-center gap-3 text-sm'>
+				{/* full email + sign out from sm: up; below that they collapse into a
+				single account icon to save header space. */}
+				<div className='hidden items-center gap-3 text-sm sm:flex'>
 					<span className='text-text-muted'>
 						{session.user.email}
 					</span>
@@ -106,7 +110,49 @@ function AuthenticatedLayout() {
 						Sign out
 					</Button>
 				</div>
+
+				<button
+					type='button'
+					aria-label='Account'
+					onClick={() => {
+						setShowAccountMenu(true);
+					}}
+					className='flex h-9 w-9 items-center justify-center rounded-full border border-border bg-transparent text-text-muted transition-colors hover:border-accent hover:text-text sm:hidden'
+				>
+					<svg
+						viewBox='0 0 24 24'
+						fill='none'
+						stroke='currentColor'
+						strokeWidth='2'
+						strokeLinecap='round'
+						strokeLinejoin='round'
+						className='h-4 w-4'
+					>
+						<circle cx='12' cy='8' r='4' />
+						<path d='M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8' />
+					</svg>
+				</button>
 			</header>
+
+			{showAccountMenu && (
+				<Overlay
+					onClose={() => {
+						setShowAccountMenu(false);
+					}}
+				>
+					<h2 className='text-lg font-bold text-text'>Account</h2>
+					<p className='text-sm text-text-muted'>
+						{session.user.email}
+					</p>
+					<Button
+						type='button'
+						variant='ghost'
+						onClick={() => void authClient.signOut()}
+					>
+						Sign out
+					</Button>
+				</Overlay>
+			)}
 
 			{!session.user.emailVerified && (
 				<div className='pt-4'>
