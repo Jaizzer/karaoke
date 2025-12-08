@@ -30,40 +30,44 @@ export async function getQueue(req: Request, res: Response) {
 	res.status(200).json({ queueItems });
 }
 
-// same two-caller shape as deleteQueueItem below: host (session) or a joined
-// guest (bearer token) can both add a song, so we resolve both credentials
-// here instead of gating on requireAuth/requireRoomMember alone.
+// Same two-caller shape as deleteQueueItem: host (session) or a joined guest (bearer token) can both add a
+// song. Token is checked before session, since a browser with both tabs open sends the host's cookie too.
 export async function postQueueItem(req: Request, res: Response) {
 	const room = await resolveRoom(req, res);
 	if (!room) {
 		return;
 	}
 
-	const session = await auth.api.getSession({
-		headers: fromNodeHeaders(req.headers),
-	});
-	const isHost = session?.user.id === room.hostId;
+	const token = getBearerToken(req);
+	const member = token ? await getRoomMemberByToken(token) : null;
 
 	let addedById: string;
-	if (isHost) {
+	if (member) {
+		if (member.roomId !== room.id) {
+			res.status(403).json({ message: 'Not a member of this room.' });
+			return;
+		}
+		addedById = member.id;
+	} else if (token) {
+		// token was sent but didn't resolve to a member: stale or invalid,
+		// don't fall back to host
+		res.status(401).json({ message: 'Not joined to a room.' });
+		return;
+	} else {
+		const session = await auth.api.getSession({
+			headers: fromNodeHeaders(req.headers),
+		});
+		const isHost = session?.user.id === room.hostId;
+		if (!isHost) {
+			res.status(401).json({ message: 'Not joined to a room.' });
+			return;
+		}
 		const hostMember = await getHostMember(room.id);
 		if (!hostMember) {
 			res.status(500).json({ message: 'Host membership not found.' });
 			return;
 		}
 		addedById = hostMember.id;
-	} else {
-		const token = getBearerToken(req);
-		const member = token ? await getRoomMemberByToken(token) : null;
-		if (!member) {
-			res.status(401).json({ message: 'Not joined to a room.' });
-			return;
-		}
-		if (member.roomId !== room.id) {
-			res.status(403).json({ message: 'Not a member of this room.' });
-			return;
-		}
-		addedById = member.id;
 	}
 
 	if (room.status !== 'OPEN') {
@@ -81,10 +85,8 @@ export async function postQueueItem(req: Request, res: Response) {
 	res.status(201).json({ queueItem });
 }
 
-// the one route where "who's allowed to do this" has two answers instead of
-// one: host (any item) or the guest who added it (their own item only). so
-// it can't gate on requireAuth/requireRoomMember alone like everything else,
-// both credentials get resolved inline.
+// The one route with two allowed actors (host, or the guest who added the item), so both credentials get
+// resolved inline, token before session, same reasoning as postQueueItem above.
 export async function deleteQueueItem(req: Request, res: Response) {
 	const room = await resolveRoom(req, res);
 	if (!room) {
@@ -103,18 +105,26 @@ export async function deleteQueueItem(req: Request, res: Response) {
 		return;
 	}
 
-	const session = await auth.api.getSession({
-		headers: fromNodeHeaders(req.headers),
-	});
-	const isHost = session?.user.id === room.hostId;
+	const token = getBearerToken(req);
+	const member = token ? await getRoomMemberByToken(token) : null;
 
-	if (!isHost) {
-		const token = getBearerToken(req);
-		const member = token ? await getRoomMemberByToken(token) : null;
-		if (member?.id !== queueItem.addedById) {
+	if (member) {
+		if (member.id !== queueItem.addedById) {
 			res.status(403).json({
 				message: 'Not allowed to remove this song.',
 			});
+			return;
+		}
+	} else if (token) {
+		res.status(401).json({ message: 'Not joined to a room.' });
+		return;
+	} else {
+		const session = await auth.api.getSession({
+			headers: fromNodeHeaders(req.headers),
+		});
+		const isHost = session?.user.id === room.hostId;
+		if (!isHost) {
+			res.status(401).json({ message: 'Not signed in.' });
 			return;
 		}
 	}

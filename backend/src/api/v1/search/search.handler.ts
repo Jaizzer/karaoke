@@ -8,31 +8,33 @@ import { getBearerToken } from '../../../middleware/requireRoomMember.ts';
 import getRoomMemberByToken from '../../../services/getRoomMemberByToken.ts';
 import { searchSongs } from './search.service.ts';
 
-// same two-caller shape as postQueueItem in queue.handler.ts: host
-// (session) or a joined guest (bearer token) can both search, so this
-// resolves both credentials inline instead of gating on
-// requireAuth/requireRoomMember alone.
+// Same two-caller shape as postQueueItem: host (session) or a joined guest (bearer token) can both search,
+// token checked before session so an explicit bearer token wins over an incidental host cookie.
 export async function postSearch(req: Request, res: Response) {
 	const room = await resolveRoom(req, res);
 	if (!room) {
 		return;
 	}
 
-	const session = await auth.api.getSession({
-		headers: fromNodeHeaders(req.headers),
-	});
-	const isHost = session?.user.id === room.hostId;
+	const token = getBearerToken(req);
+	const member = token ? await getRoomMemberByToken(token) : null;
 
-	if (!isHost) {
-		const token = getBearerToken(req);
-		const member = token ? await getRoomMemberByToken(token) : null;
-		if (!member) {
-			res.status(401).json({ message: 'Not joined to a room.' });
-			return;
-		}
+	if (member) {
 		// Same reasoning queue routes use: a member's token is only valid for the room it joined.
 		if (member.roomId !== room.id) {
 			res.status(403).json({ message: 'Not a member of this room.' });
+			return;
+		}
+	} else if (token) {
+		res.status(401).json({ message: 'Not joined to a room.' });
+		return;
+	} else {
+		const session = await auth.api.getSession({
+			headers: fromNodeHeaders(req.headers),
+		});
+		const isHost = session?.user.id === room.hostId;
+		if (!isHost) {
+			res.status(401).json({ message: 'Not joined to a room.' });
 			return;
 		}
 	}

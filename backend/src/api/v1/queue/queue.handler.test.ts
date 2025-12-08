@@ -24,7 +24,7 @@ interface JoinResponseBody {
 }
 
 interface QueueItemResponseBody {
-	queueItem: { id: string; status: string };
+	queueItem: { id: string; status: string; addedById: string };
 }
 
 interface QueueListResponseBody {
@@ -169,6 +169,22 @@ describe('/api/v1/rooms/:code/queue', () => {
 		);
 	});
 
+	// Regression test: a browser open to both host dashboard and guest page still carries the host's session
+	// cookie on the guest's requests too; the guest's bearer token has to win anyway.
+	test('attributes to the guest, not the host, when a request carries both credentials', async () => {
+		const room = await createRoom();
+		const { member, sessionToken } = await joinRoom(room.code);
+
+		const response = await hostAgent
+			.post(`/api/v1/rooms/${room.code}/queue`)
+			.set('Authorization', `Bearer ${sessionToken}`)
+			.send(sampleSong);
+		expect(response.status).toBe(201);
+		expect(
+			(response.body as QueueItemResponseBody).queueItem.addedById,
+		).toBe(member.id);
+	});
+
 	test('orders the queue by when items were added', async () => {
 		const room = await createRoom();
 		const { sessionToken } = await joinRoom(room.code);
@@ -228,6 +244,19 @@ describe('/api/v1/rooms/:code/queue', () => {
 			`/api/v1/rooms/${room.code}/queue/${item.id}`,
 		);
 		expect(response.status).toBe(204);
+	});
+
+	// Regression test, same reasoning as above: a bearer token must be honored even when a host cookie is also present.
+	test("rejects removal via a guest token for someone else's song, even from the host's own browser", async () => {
+		const room = await createRoom();
+		const adder = await joinRoom(room.code);
+		const other = await joinRoom(room.code);
+		const item = await addSong(room.code, adder.sessionToken);
+
+		const response = await hostAgent
+			.delete(`/api/v1/rooms/${room.code}/queue/${item.id}`)
+			.set('Authorization', `Bearer ${other.sessionToken}`);
+		expect(response.status).toBe(403);
 	});
 
 	test('rejects start/finish with no host session', async () => {
