@@ -30,6 +30,8 @@ const { default: app } = await import('../../../app.ts');
 const { prisma } = await import('../../../database/prismaClient.ts');
 const { default: ServiceNotConfiguredError } =
 	await import('../../../lib/serviceNotConfiguredError.ts');
+const { default: ExternalServiceError } =
+	await import('../../../lib/externalServiceError.ts');
 
 const hostEmail = `test-${randomUUID()}@example.com`;
 const password = 'a-reasonably-long-test-password';
@@ -165,6 +167,20 @@ describe('/api/v1/rooms/:code/search', () => {
 		const token = await joinRoom(room.code);
 		searchYoutube.mockRejectedValue(
 			new ServiceNotConfiguredError('YOUTUBE_API_KEY is not configured.'),
+		);
+
+		const response = await request(app)
+			.post(`/api/v1/rooms/${room.code}/search`)
+			.set('Authorization', `Bearer ${token}`)
+			.send({ query: 'test' });
+		expect(response.status).toBe(503);
+	});
+
+	test('returns 503, not 500, when YouTube itself rejects the request (e.g. quota exceeded)', async () => {
+		const room = await createRoom();
+		const token = await joinRoom(room.code);
+		searchYoutube.mockRejectedValue(
+			new ExternalServiceError('YouTube search.list failed: 429'),
 		);
 
 		const response = await request(app)

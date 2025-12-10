@@ -1,5 +1,6 @@
 import config from '../config/env.ts';
 import ServiceNotConfiguredError from './serviceNotConfiguredError.ts';
+import ExternalServiceError from './externalServiceError.ts';
 import decodeHtmlEntities from './decodeHtmlEntities.ts';
 
 export interface YoutubeCandidate {
@@ -55,7 +56,7 @@ export async function searchYoutube(
 
 	const searchResponse = await fetch(searchUrl);
 	if (!searchResponse.ok) {
-		throw new Error(
+		throw new ExternalServiceError(
 			`YouTube search.list failed: ${String(searchResponse.status)}`,
 		);
 	}
@@ -75,7 +76,7 @@ export async function searchYoutube(
 
 	const statsResponse = await fetch(statsUrl);
 	if (!statsResponse.ok) {
-		throw new Error(
+		throw new ExternalServiceError(
 			`YouTube videos.list failed: ${String(statsResponse.status)}`,
 		);
 	}

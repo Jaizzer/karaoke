@@ -1,5 +1,6 @@
 import config from '../config/env.ts';
 import ServiceNotConfiguredError from './serviceNotConfiguredError.ts';
+import ExternalServiceError from './externalServiceError.ts';
 import type { YoutubeCandidate } from './youtube.ts';
 
 // A free-tier OpenRouter model, a cost-free stopgap; swap this (and nothing else here) to change provider/model.
@@ -84,7 +85,7 @@ export async function rankCandidates(
 	});
 
 	if (!response.ok) {
-		throw new Error(
+		throw new ExternalServiceError(
 			`OpenRouter request failed: ${String(response.status)} ${await response.text()}`,
 		);
 	}

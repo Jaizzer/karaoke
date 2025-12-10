@@ -4,6 +4,7 @@ import { auth } from '../../../lib/auth.ts';
 import { SearchSchema } from '../../../lib/validators.ts';
 import resolveRoom from '../../../lib/resolveRoom.ts';
 import ServiceNotConfiguredError from '../../../lib/serviceNotConfiguredError.ts';
+import ExternalServiceError from '../../../lib/externalServiceError.ts';
 import { getBearerToken } from '../../../middleware/requireRoomMember.ts';
 import getRoomMemberByToken from '../../../services/getRoomMemberByToken.ts';
 import { searchSongs } from './search.service.ts';
@@ -64,7 +65,12 @@ export async function postSearch(req: Request, res: Response) {
 			autoSelect,
 		);
 	} catch (error) {
-		if (error instanceof ServiceNotConfiguredError) {
+		if (
+			error instanceof ServiceNotConfiguredError ||
+			error instanceof ExternalServiceError
+		) {
+			// Still worth logging server-side; the guest only sees the generic message, this is the only record of why.
+			console.error(error);
 			res.status(503).json({
 				message: 'Search is not available right now.',
 			});
