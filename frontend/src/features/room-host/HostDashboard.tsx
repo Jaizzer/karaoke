@@ -106,12 +106,17 @@ export default function HostDashboard() {
 		room?.activeHostSessionId !== undefined &&
 		room.activeHostSessionId !== claimedSessionId;
 
-	// auto-advance: whenever nothing is playing but something is queued, start
-	// it. guarded by a ref (not state) so an in-flight POST can't double-fire if
-	// the next poll tick lands before this one resolves.
+	// Auto-advances when nothing's playing but something's queued; ref-guarded against double-fire, and
+	// gated on lockedOut too, since this effect keeps running even while the player itself is hidden.
 	const startingRef = useRef(false);
 	useEffect(() => {
-		if (!code || nowPlaying || !nextQueued || startingRef.current) {
+		if (
+			!code ||
+			lockedOut ||
+			nowPlaying ||
+			!nextQueued ||
+			startingRef.current
+		) {
 			return;
 		}
 		startingRef.current = true;
@@ -127,7 +132,7 @@ export default function HostDashboard() {
 			.finally(() => {
 				startingRef.current = false;
 			});
-	}, [code, nowPlaying, nextQueued, refetchQueue]);
+	}, [code, lockedOut, nowPlaying, nextQueued, refetchQueue]);
 
 	async function handleSongEnded() {
 		if (!code || !nowPlaying) {
